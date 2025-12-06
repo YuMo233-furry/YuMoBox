@@ -9,6 +9,16 @@ android {
     namespace = "com.example.yumoflatimagemanager"
     compileSdk = 36
 
+    // 配置签名信息
+    signingConfigs {
+        create("release") {
+            storeFile = file("signature/yumobox.keystore")
+            storePassword = "123456"
+            keyAlias = "yumobox"
+            keyPassword = "123456"
+        }
+    }
+
     defaultConfig {
         applicationId = "com.example.yumoflatimagemanager"
         minSdk = 24
@@ -34,6 +44,7 @@ android {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
+            signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
