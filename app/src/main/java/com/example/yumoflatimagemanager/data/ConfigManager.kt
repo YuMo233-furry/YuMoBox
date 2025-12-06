@@ -1,21 +1,15 @@
 package com.example.yumoflatimagemanager.data
 
-import android.content.Context
 import android.os.Environment
 import android.util.Log
 import ando.file.core.FileUtils
-import ando.file.core.FileUtils.readFileText
-import ando.file.core.FileUtils.write2File
-import com.example.yumoflatimagemanager.data.ConfigModels.AlbumConfig
-import com.example.yumoflatimagemanager.data.ConfigModels.MigrationConfig
-import com.example.yumoflatimagemanager.data.ConfigModels.SecurityConfig
-import com.example.yumoflatimagemanager.data.ConfigModels.TagConfig
-import com.example.yumoflatimagemanager.data.ConfigModels.WatermarkConfig
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 
 /**
  * 配置管理类，负责统一管理所有配置文件
@@ -83,14 +77,14 @@ object ConfigManager {
      * @param clazz 配置类
      * @return 配置对象，如果文件不存在或读取失败则返回null
      */
-    private fun <T> readConfig(fileName: String, clazz: Class<T>): T? {
+    private fun <T : Any> readConfig(fileName: String, clazz: Class<T>): T? {
         val configFile = getConfigFile(fileName)
         if (!configFile.exists()) {
             return null
         }
         
         return try {
-            val jsonString = readFileText(configFile.absolutePath)
+            val jsonString = FileInputStream(configFile).bufferedReader().use { it.readText() }
             val adapter: JsonAdapter<T> = moshi.adapter(clazz)
             adapter.fromJson(jsonString)
         } catch (e: Exception) {
@@ -105,12 +99,12 @@ object ConfigManager {
      * @param config 配置对象
      * @return 是否写入成功
      */
-    private fun <T> writeConfig(fileName: String, config: T): Boolean {
+    private fun <T : Any> writeConfig(fileName: String, config: T): Boolean {
         val configFile = getConfigFile(fileName)
         return try {
-            val adapter: JsonAdapter<T> = moshi.adapter(config.javaClass)
+            val adapter: JsonAdapter<T> = moshi.adapter(config::class.java as Class<T>)
             val jsonString = adapter.toJson(config)
-            write2File(jsonString.toByteArray(), configFile)
+            FileOutputStream(configFile).bufferedWriter().use { it.write(jsonString) }
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write config file $fileName: ${e.message}")

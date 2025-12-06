@@ -3,14 +3,14 @@ package com.example.yumoflatimagemanager.data
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
-import com.example.yumoflatimagemanager.data.ConfigModels.AlbumConfig
-import com.example.yumoflatimagemanager.data.ConfigModels.ScrollPosition
-import com.example.yumoflatimagemanager.data.ConfigModels.SecurityConfig
-import com.example.yumoflatimagemanager.data.ConfigModels.TagConfig
-import com.example.yumoflatimagemanager.data.ConfigModels.WatermarkConfig
-import com.example.yumoflatimagemanager.data.SortOrder.SortConfig
-import com.example.yumoflatimagemanager.data.SortOrder.SortDirection
-import com.example.yumoflatimagemanager.data.SortOrder.SortType
+import com.example.yumoflatimagemanager.data.AlbumConfig
+import com.example.yumoflatimagemanager.data.ScrollPosition
+import com.example.yumoflatimagemanager.data.SecurityConfig
+import com.example.yumoflatimagemanager.data.TagConfig
+import com.example.yumoflatimagemanager.data.WatermarkConfig
+import com.example.yumoflatimagemanager.data.SortConfig
+import com.example.yumoflatimagemanager.data.SortDirection
+import com.example.yumoflatimagemanager.data.SortType
 
 /**
  * 配置迁移类，负责将现有的 SharedPreferences 配置迁移到新的文件存储系统中

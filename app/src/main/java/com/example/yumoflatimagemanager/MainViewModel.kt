@@ -17,8 +17,9 @@ import com.example.yumoflatimagemanager.data.AlbumType
 import com.example.yumoflatimagemanager.data.ImageItem
 import com.example.yumoflatimagemanager.data.ConfigManager
 import com.example.yumoflatimagemanager.data.ConfigMigration
-import com.example.yumoflatimagemanager.data.ConfigModels.TagConfig
-import com.example.yumoflatimagemanager.data.ConfigModels.AlbumConfig
+import com.example.yumoflatimagemanager.data.TagConfig
+import com.example.yumoflatimagemanager.data.AlbumConfig
+import com.example.yumoflatimagemanager.data.ScrollPosition
 import com.example.yumoflatimagemanager.data.SortConfig
 import com.example.yumoflatimagemanager.data.SortType
 import com.example.yumoflatimagemanager.data.SortDirection
@@ -1558,11 +1559,8 @@ class MainViewModel(private val context: Context) : ViewModel() {
     fun restoreTagFilters() {
         // 从配置文件读取标签配置
         val tagConfig = ConfigManager.readTagConfig()
-        // 使用配置文件中的标签状态，忽略旧的 preferencesManager 调用
+        // 使用配置文件中的标签状态
         activeTagFilterIds = tagConfig.activeTagFilterIds
-        if (saved.isNotBlank()) {
-            activeTagFilterIds = saved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
-        }
     }
     
     // 恢复所有标签状态
@@ -1588,18 +1586,18 @@ class MainViewModel(private val context: Context) : ViewModel() {
     
     // 重置所有标签状态
     fun resetAllTagStates() {
-        activeTagFilterIds = emptySet()
-        excludedTagIds = emptySet()
-        expandedTagIds = emptySet()
-        expandedReferencedTagIds = emptySet()
+        activeTagFilterIds = emptySet<Long>()
+        excludedTagIds = emptySet<Long>()
+        expandedTagIds = emptySet<Long>()
+        expandedReferencedTagIds = emptySet<Long>()
         tagDrawerScrollIndex = 0
         
         // 清除持久化数据 - 保存到配置文件
         val tagConfig = TagConfig(
-            expandedTagIds = emptySet(),
-            activeTagFilterIds = emptySet(),
-            excludedTagIds = emptySet(),
-            expandedReferencedTagIds = emptySet(),
+            expandedTagIds = emptySet<Long>(),
+            activeTagFilterIds = emptySet<Long>(),
+            excludedTagIds = emptySet<Long>(),
+            expandedReferencedTagIds = emptySet<Long>(),
             tagDrawerScrollIndex = 0
         )
         ConfigManager.writeTagConfig(tagConfig)
@@ -1610,7 +1608,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
         // 从配置文件读取当前相册配置
         val albumConfig = ConfigManager.readAlbumConfig()
         // 更新默认相册的滚动位置
-        albumConfig.gridScrollPositions["default"] = com.example.yumoflatimagemanager.data.ConfigModels.ScrollPosition(firstIndex, firstOffset)
+        albumConfig.gridScrollPositions["default"] = ScrollPosition(firstIndex, firstOffset)
         // 保存回配置文件
         ConfigManager.writeAlbumConfig(albumConfig)
     }
@@ -1619,7 +1617,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
         // 从配置文件读取当前相册配置
         val albumConfig = ConfigManager.readAlbumConfig()
         // 获取默认相册的滚动位置
-        val scrollPosition = albumConfig.gridScrollPositions["default"] ?: com.example.yumoflatimagemanager.data.ConfigModels.ScrollPosition()
+        val scrollPosition = albumConfig.gridScrollPositions["default"] ?: ScrollPosition()
         return scrollPosition.index to scrollPosition.offset
     }
     
@@ -2091,7 +2089,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
      */
     private fun loadAlbumImages(album: Album) {
         // 尝试从偏好设置中获取该相册的排序配置
-        val savedSortConfig = ConfigManager.readAlbumConfig().sortConfigs[album.id] ?: com.example.yumoflatimagemanager.data.SortOrder.SortConfig()
+        val savedSortConfig = ConfigManager.readAlbumConfig().sortConfigs[album.id] ?: SortConfig()
         val sortConfig = savedSortConfig ?: album.sortConfig
         
         // 尝试从偏好设置中获取该相册的网格列数配置
