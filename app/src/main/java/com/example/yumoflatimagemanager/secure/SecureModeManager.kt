@@ -5,7 +5,7 @@ import android.os.Environment
 import android.util.Log
 import ando.file.core.FileLogger
 import ando.file.core.FileUtils
-import com.example.yumoflatimagemanager.data.PreferencesManager
+import com.example.yumoflatimagemanager.data.ConfigManager
 import com.example.yumoflatimagemanager.media.AlbumPathManager
 import com.example.yumoflatimagemanager.permissions.PermissionsManager
 import java.io.File
@@ -46,16 +46,16 @@ object SecureModeManager {
      * 检查安全模式是否已启用
      */
     fun isSecureModeEnabled(context: Context): Boolean {
-        return PreferencesManager.getInstance(context)
-            .getBoolean(PREF_SECURE_MODE_ENABLED, false)
+        return ConfigManager.readSecurityConfig().isSecureModeEnabled
     }
     
     /**
      * 切换安全模式状态
      */
     fun toggleSecureMode(context: Context, isEnabled: Boolean): Boolean {
-        val preferencesManager = PreferencesManager.getInstance(context)
-        preferencesManager.putBoolean(PREF_SECURE_MODE_ENABLED, isEnabled)
+        val securityConfig = ConfigManager.readSecurityConfig()
+        securityConfig.isSecureModeEnabled = isEnabled
+        ConfigManager.writeSecurityConfig(securityConfig)
         
         // 确保已获取必要的权限
         if (!PermissionsManager.hasRequiredPermissions(context)) {
@@ -583,23 +583,16 @@ object SecureModeManager {
      * 获取私密相册的ID列表
      */
     fun getPrivateAlbumIds(context: Context): List<String> {
-        val preferencesManager = PreferencesManager.getInstance(context)
-        val privateAlbumsString = preferencesManager.getString(PREF_PRIVATE_ALBUMS, "")
-        
-        return if (privateAlbumsString.isNullOrEmpty()) {
-            emptyList()
-        } else {
-            privateAlbumsString.split(",").filter { it.isNotEmpty() }
-        }
+        return ConfigManager.readSecurityConfig().privateAlbumIds
     }
     
     /**
      * 保存私密相册的ID列表
      */
     fun savePrivateAlbumIds(context: Context, albumIds: List<String>) {
-        val preferencesManager = PreferencesManager.getInstance(context)
-        val idsString = albumIds.joinToString(",")
-        preferencesManager.putString(PREF_PRIVATE_ALBUMS, idsString)
+        val securityConfig = ConfigManager.readSecurityConfig()
+        securityConfig.privateAlbumIds = albumIds
+        ConfigManager.writeSecurityConfig(securityConfig)
     }
     
     /**

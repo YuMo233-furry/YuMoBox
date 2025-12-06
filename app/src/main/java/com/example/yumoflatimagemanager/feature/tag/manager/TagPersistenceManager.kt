@@ -1,6 +1,6 @@
 package com.example.yumoflatimagemanager.feature.tag.manager
 
-import com.example.yumoflatimagemanager.data.PreferencesManager
+import com.example.yumoflatimagemanager.data.ConfigManager
 import com.example.yumoflatimagemanager.feature.tag.state.TagState
 
 /**
@@ -8,7 +8,6 @@ import com.example.yumoflatimagemanager.feature.tag.state.TagState
  * 负责标签状态的保存和恢复
  */
 class TagPersistenceManager(
-    private val preferencesManager: PreferencesManager,
     private val tagState: TagState
 ) {
     
@@ -22,43 +21,44 @@ class TagPersistenceManager(
     // ==================== 保存状态 ====================
     
     /**
+     * 保存所有标签状态
+     */
+    private fun saveAllTagStates() {
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.activeTagFilterIds = tagState.activeTagFilterIds
+        tagConfig.excludedTagIds = tagState.excludedTagIds
+        tagConfig.expandedTagIds = tagState.expandedTagIds
+        tagConfig.expandedReferencedTagIds = tagState.expandedReferencedTagIds
+        tagConfig.tagDrawerScrollIndex = tagState.tagDrawerScrollIndex
+        ConfigManager.writeTagConfig(tagConfig)
+    }
+    
+    /**
      * 保存激活的标签过滤
      */
     fun saveActiveTagFilters() {
-        preferencesManager.putString(
-            PREF_ACTIVE_TAGS,
-            tagState.activeTagFilterIds.joinToString(",")
-        )
+        saveAllTagStates()
     }
     
     /**
      * 保存排除的标签
      */
     fun saveExcludedTags() {
-        preferencesManager.putString(
-            PREF_EXCLUDED_TAGS,
-            tagState.excludedTagIds.joinToString(",")
-        )
+        saveAllTagStates()
     }
     
     /**
      * 保存展开的标签
      */
     fun saveExpandedTags() {
-        preferencesManager.putString(
-            PREF_EXPANDED_TAGS,
-            tagState.expandedTagIds.joinToString(",")
-        )
+        saveAllTagStates()
     }
     
     /**
      * 保存展开的引用标签
      */
     fun saveExpandedReferencedTags() {
-        preferencesManager.putString(
-            PREF_EXPANDED_REFERENCED_TAGS,
-            tagState.expandedReferencedTagIds.joinToString(",")
-        )
+        saveAllTagStates()
     }
     
     /**
@@ -66,7 +66,7 @@ class TagPersistenceManager(
      */
     fun saveTagDrawerScrollPosition(index: Int) {
         tagState.updateTagDrawerScrollIndex(index)
-        preferencesManager.putString(PREF_TAG_DRAWER_SCROLL_INDEX, index.toString())
+        saveAllTagStates()
     }
     
     // ==================== 恢复状态 ====================
@@ -75,52 +75,40 @@ class TagPersistenceManager(
      * 恢复激活的标签过滤
      */
     fun restoreActiveTagFilters() {
-        val saved = preferencesManager.getString(PREF_ACTIVE_TAGS, "")
-        if (saved.isNotBlank()) {
-            val ids = saved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
-            tagState.updateActiveTagFilterIds(ids)
-        }
+        val tagConfig = ConfigManager.readTagConfig()
+        tagState.updateActiveTagFilterIds(tagConfig.activeTagFilterIds)
     }
     
     /**
      * 恢复排除的标签
      */
     fun restoreExcludedTags() {
-        val saved = preferencesManager.getString(PREF_EXCLUDED_TAGS, "")
-        if (saved.isNotBlank()) {
-            val ids = saved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
-            tagState.updateExcludedTagIds(ids)
-        }
+        val tagConfig = ConfigManager.readTagConfig()
+        tagState.updateExcludedTagIds(tagConfig.excludedTagIds)
     }
     
     /**
      * 恢复展开的标签
      */
     fun restoreExpandedTags() {
-        val saved = preferencesManager.getString(PREF_EXPANDED_TAGS, "")
-        if (saved.isNotBlank()) {
-            val ids = saved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
-            tagState.updateExpandedTagIds(ids)
-        }
+        val tagConfig = ConfigManager.readTagConfig()
+        tagState.updateExpandedTagIds(tagConfig.expandedTagIds)
     }
     
     /**
      * 恢复展开的引用标签
      */
     fun restoreExpandedReferencedTags() {
-        val saved = preferencesManager.getString(PREF_EXPANDED_REFERENCED_TAGS, "")
-        if (saved.isNotBlank()) {
-            val ids = saved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
-            tagState.updateExpandedReferencedTagIds(ids)
-        }
+        val tagConfig = ConfigManager.readTagConfig()
+        tagState.updateExpandedReferencedTagIds(tagConfig.expandedReferencedTagIds)
     }
     
     /**
      * 恢复标签抽屉滚动位置
      */
     fun restoreTagDrawerScrollPosition(): Int {
-        val saved = preferencesManager.getString(PREF_TAG_DRAWER_SCROLL_INDEX, "0")
-        val index = saved.toIntOrNull() ?: 0
+        val tagConfig = ConfigManager.readTagConfig()
+        val index = tagConfig.tagDrawerScrollIndex
         tagState.updateTagDrawerScrollIndex(index)
         return index
     }
@@ -143,11 +131,13 @@ class TagPersistenceManager(
         tagState.resetAllStates()
         
         // 清理持久化数据
-        preferencesManager.putString(PREF_ACTIVE_TAGS, "")
-        preferencesManager.putString(PREF_EXCLUDED_TAGS, "")
-        preferencesManager.putString(PREF_EXPANDED_TAGS, "")
-        preferencesManager.putString(PREF_EXPANDED_REFERENCED_TAGS, "")
-        preferencesManager.putString(PREF_TAG_DRAWER_SCROLL_INDEX, "0")
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.activeTagFilterIds = emptySet()
+        tagConfig.excludedTagIds = emptySet()
+        tagConfig.expandedTagIds = emptySet()
+        tagConfig.expandedReferencedTagIds = emptySet()
+        tagConfig.tagDrawerScrollIndex = 0
+        ConfigManager.writeTagConfig(tagConfig)
     }
 }
 

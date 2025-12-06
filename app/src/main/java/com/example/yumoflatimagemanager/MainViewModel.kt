@@ -15,7 +15,10 @@ import kotlinx.coroutines.async
 import com.example.yumoflatimagemanager.data.Album
 import com.example.yumoflatimagemanager.data.AlbumType
 import com.example.yumoflatimagemanager.data.ImageItem
-import com.example.yumoflatimagemanager.data.PreferencesManager
+import com.example.yumoflatimagemanager.data.ConfigManager
+import com.example.yumoflatimagemanager.data.ConfigMigration
+import com.example.yumoflatimagemanager.data.ConfigModels.TagConfig
+import com.example.yumoflatimagemanager.data.ConfigModels.AlbumConfig
 import com.example.yumoflatimagemanager.data.SortConfig
 import com.example.yumoflatimagemanager.data.SortType
 import com.example.yumoflatimagemanager.data.SortDirection
@@ -84,8 +87,8 @@ class MainViewModel(private val context: Context) : ViewModel() {
     // UI状态管理器
     private val uiStateManager = UiStateManagerImpl()
     
-    // 偏好设置管理器
-    private val preferencesManager = PreferencesManager.getInstance(context)
+    // 配置管理器 - 替换原有的 preferencesManager
+    // ConfigManager 是一个单例对象，直接使用即可
     
     // ============ 新架构：标签功能代理 ============
     // 使用新的 TagViewModel 来管理所有标签功能
@@ -437,7 +440,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
             activeTagFilterIds + tagId
         }
         // 持久化
-        preferencesManager.putString(PREF_ACTIVE_TAGS, activeTagFilterIds.joinToString(","))
+        saveCurrentTagState()
         
         // 清理过滤缓存
         clearFilterCache()
@@ -459,11 +462,11 @@ class MainViewModel(private val context: Context) : ViewModel() {
         // 确保一个标签不能同时处于激活和排除状态
         if (excludedTagIds.contains(tagId)) {
             activeTagFilterIds = activeTagFilterIds - tagId
-            preferencesManager.putString(PREF_ACTIVE_TAGS, activeTagFilterIds.joinToString(","))
+            saveCurrentTagState()
         }
         
         // 持久化排除状态
-        preferencesManager.putString(PREF_EXCLUDED_TAGS, excludedTagIds.joinToString(","))
+        saveCurrentTagState()
         // 清理过滤缓存
         clearFilterCache()
     }
@@ -651,7 +654,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
             tagRepo.toggleTagExpanded(tagId, !isExpanded)
             
             // 持久化展开状态
-            preferencesManager.putString(PREF_EXPANDED_TAGS, expandedTagIds.joinToString(","))
+            saveCurrentTagState()
             println("DEBUG: 切换本体标签 ${tagId} 的展开状态为 ${!isExpanded}, 当前本体展开状态: $expandedTagIds")
         }
     }
@@ -669,7 +672,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
             println("DEBUG: 切换引用标签 ${tagId} 的展开状态为 ${!isExpanded}, 当前引用展开状态: $expandedReferencedTagIds")
             
             // 持久化引用标签展开状态
-            preferencesManager.putString(PREF_EXPANDED_REFERENCED_TAGS, expandedReferencedTagIds.joinToString(","))
+            saveCurrentTagState()
         }
     }
     
@@ -788,7 +791,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
                 if (activeTagFilterIds.contains(tag.id)) {
                     activeTagFilterIds = activeTagFilterIds - tag.id
                     // 持久化更新
-                    preferencesManager.putString(PREF_ACTIVE_TAGS, activeTagFilterIds.joinToString(","))
+                    saveCurrentTagState()
                 }
                 
                 // 删除标签（包含清理所有关联数据）
@@ -813,7 +816,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
         if (activeTagFilterIds.contains(tag.id)) {
             activeTagFilterIds = activeTagFilterIds - tag.id
             // 持久化更新
-            preferencesManager.putString(PREF_ACTIVE_TAGS, activeTagFilterIds.joinToString(","))
+            saveCurrentTagState()
         }
         
         // 先缓存标签的所有关联数据
@@ -1529,18 +1532,34 @@ class MainViewModel(private val context: Context) : ViewModel() {
     // 保存标签抽屉滚动位置
     fun saveTagDrawerScrollPosition(index: Int) {
         tagDrawerScrollIndex = index
-        preferencesManager.putString(PREF_TAG_DRAWER_SCROLL_INDEX, index.toString())
+        // 更新标签配置并保存到文件
+        saveCurrentTagState()
     }
     
     // 恢复标签抽屉滚动位置
     fun restoreTagDrawerScrollPosition(): Int {
-        val saved = preferencesManager.getString(PREF_TAG_DRAWER_SCROLL_INDEX, "0")
-        tagDrawerScrollIndex = saved.toIntOrNull() ?: 0
+        // 从配置文件读取标签配置
+        val tagConfig = ConfigManager.readTagConfig()
+        tagDrawerScrollIndex = tagConfig.tagDrawerScrollIndex
         return tagDrawerScrollIndex
+    }
+    
+    // 保存当前标签状态到配置文件
+    private fun saveCurrentTagState() {
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.activeTagFilterIds = activeTagFilterIds
+        tagConfig.excludedTagIds = excludedTagIds
+        tagConfig.expandedTagIds = expandedTagIds
+        tagConfig.expandedReferencedTagIds = expandedReferencedTagIds
+        tagConfig.tagDrawerScrollIndex = tagDrawerScrollIndex
+        ConfigManager.writeTagConfig(tagConfig)
     }
 
     fun restoreTagFilters() {
-        val saved = preferencesManager.getString(PREF_ACTIVE_TAGS, "")
+        // 从配置文件读取标签配置
+        val tagConfig = ConfigManager.readTagConfig()
+        // 使用配置文件中的标签状态，忽略旧的 preferencesManager 调用
+        activeTagFilterIds = tagConfig.activeTagFilterIds
         if (saved.isNotBlank()) {
             activeTagFilterIds = saved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
         }
@@ -1548,32 +1567,23 @@ class MainViewModel(private val context: Context) : ViewModel() {
     
     // 恢复所有标签状态
     fun restoreAllTagStates() {
+        // 从配置文件读取标签配置
+        val tagConfig = ConfigManager.readTagConfig()
+        
         // 恢复激活的标签过滤
-        val activeSaved = preferencesManager.getString(PREF_ACTIVE_TAGS, "")
-        if (activeSaved.isNotBlank()) {
-            activeTagFilterIds = activeSaved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
-        }
+        activeTagFilterIds = tagConfig.activeTagFilterIds
         
         // 恢复排除的标签
-        val excludedSaved = preferencesManager.getString(PREF_EXCLUDED_TAGS, "")
-        if (excludedSaved.isNotBlank()) {
-            excludedTagIds = excludedSaved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
-        }
+        excludedTagIds = tagConfig.excludedTagIds
         
         // 恢复展开的标签
-        val expandedSaved = preferencesManager.getString(PREF_EXPANDED_TAGS, "")
-        if (expandedSaved.isNotBlank()) {
-            expandedTagIds = expandedSaved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
-        }
+        expandedTagIds = tagConfig.expandedTagIds
         
         // 恢复展开的引用标签
-        val expandedReferencedSaved = preferencesManager.getString(PREF_EXPANDED_REFERENCED_TAGS, "")
-        if (expandedReferencedSaved.isNotBlank()) {
-            expandedReferencedTagIds = expandedReferencedSaved.split(',').mapNotNull { it.toLongOrNull() }.toSet()
-        }
+        expandedReferencedTagIds = tagConfig.expandedReferencedTagIds
         
         // 恢复标签抽屉滚动位置
-        restoreTagDrawerScrollPosition()
+        tagDrawerScrollIndex = tagConfig.tagDrawerScrollIndex
     }
     
     // 重置所有标签状态
@@ -1584,32 +1594,45 @@ class MainViewModel(private val context: Context) : ViewModel() {
         expandedReferencedTagIds = emptySet()
         tagDrawerScrollIndex = 0
         
-        // 清除持久化数据
-        preferencesManager.putString(PREF_ACTIVE_TAGS, "")
-        preferencesManager.putString(PREF_EXCLUDED_TAGS, "")
-        preferencesManager.putString(PREF_EXPANDED_TAGS, "")
-        preferencesManager.putString(PREF_EXPANDED_REFERENCED_TAGS, "")
-        preferencesManager.putString(PREF_TAG_DRAWER_SCROLL_INDEX, "0")
+        // 清除持久化数据 - 保存到配置文件
+        val tagConfig = TagConfig(
+            expandedTagIds = emptySet(),
+            activeTagFilterIds = emptySet(),
+            excludedTagIds = emptySet(),
+            expandedReferencedTagIds = emptySet(),
+            tagDrawerScrollIndex = 0
+        )
+        ConfigManager.writeTagConfig(tagConfig)
     }
 
     // 保存/恢复网格滚动位置
     fun saveGridScroll(firstIndex: Int, firstOffset: Int) {
-        preferencesManager.putString(PREF_GRID_SCROLL_INDEX, firstIndex.toString())
-        preferencesManager.putString(PREF_GRID_SCROLL_OFFSET, firstOffset.toString())
+        // 从配置文件读取当前相册配置
+        val albumConfig = ConfigManager.readAlbumConfig()
+        // 更新默认相册的滚动位置
+        albumConfig.gridScrollPositions["default"] = com.example.yumoflatimagemanager.data.ConfigModels.ScrollPosition(firstIndex, firstOffset)
+        // 保存回配置文件
+        ConfigManager.writeAlbumConfig(albumConfig)
     }
-
+    
     fun loadGridScroll(): Pair<Int, Int> {
-        val index = preferencesManager.getString(PREF_GRID_SCROLL_INDEX, "0").toIntOrNull() ?: 0
-        val offset = preferencesManager.getString(PREF_GRID_SCROLL_OFFSET, "0").toIntOrNull() ?: 0
-        return index to offset
+        // 从配置文件读取当前相册配置
+        val albumConfig = ConfigManager.readAlbumConfig()
+        // 获取默认相册的滚动位置
+        val scrollPosition = albumConfig.gridScrollPositions["default"] ?: com.example.yumoflatimagemanager.data.ConfigModels.ScrollPosition()
+        return scrollPosition.index to scrollPosition.offset
     }
     
     /**
      * 清除已保存的滚动位置数据
      */
     fun clearSavedScrollPosition() {
-        preferencesManager.putString(PREF_GRID_SCROLL_INDEX, "0")
-        preferencesManager.putString(PREF_GRID_SCROLL_OFFSET, "0")
+        // 从配置文件读取当前相册配置
+        val albumConfig = ConfigManager.readAlbumConfig()
+        // 清除默认相册的滚动位置
+        albumConfig.gridScrollPositions.remove("default")
+        // 保存回配置文件
+        ConfigManager.writeAlbumConfig(albumConfig)
     }
     
     /**
@@ -1860,7 +1883,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
             })
 
             // 自定义相册应用用户选择的排序配置
-            val sortConfig = preferencesManager.loadAlbumsSortConfig()
+            val sortConfig = ConfigManager.readAlbumConfig().albumsSortConfig
             val sortedCustomAlbums = sortAlbums(customAlbumsList, sortConfig)
 
             // 合并排序后的相册列表
@@ -1910,7 +1933,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
             })
 
             // 自定义相册应用用户选择的排序配置
-            val sortConfig = preferencesManager.loadAlbumsSortConfig()
+            val sortConfig = ConfigManager.readAlbumConfig().albumsSortConfig
             val sortedCustomAlbums = sortAlbums(customAlbumsList, sortConfig)
 
             // 合并排序后的相册列表
@@ -2016,7 +2039,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
         })
 
         // 自定义相册应用用户选择的排序配置
-        val sortConfig = preferencesManager.loadAlbumsSortConfig()
+        val sortConfig = ConfigManager.readAlbumConfig().albumsSortConfig
         val sortedCustomAlbums = sortAlbums(customAlbumsList, sortConfig)
 
         // 合并排序后的相册列表
@@ -2068,11 +2091,11 @@ class MainViewModel(private val context: Context) : ViewModel() {
      */
     private fun loadAlbumImages(album: Album) {
         // 尝试从偏好设置中获取该相册的排序配置
-        val savedSortConfig = preferencesManager.loadAlbumSortConfig(album.id)
+        val savedSortConfig = ConfigManager.readAlbumConfig().sortConfigs[album.id] ?: com.example.yumoflatimagemanager.data.SortOrder.SortConfig()
         val sortConfig = savedSortConfig ?: album.sortConfig
         
         // 尝试从偏好设置中获取该相册的网格列数配置
-        gridColumnCount = preferencesManager.loadAlbumGridColumns(album.id)
+        gridColumnCount = ConfigManager.readAlbumConfig().gridColumns[album.id] ?: 3
         
         // 使用媒体内容管理器获取相册中的图片
         images = mediaContentManager.getImagesByAlbumId(album.id, sortConfig)
@@ -2824,8 +2847,12 @@ class MainViewModel(private val context: Context) : ViewModel() {
         // 更新相册的排序配置
         val updatedAlbum = albumManager.updateAlbumSortConfig(album, sortConfig)
         
-        // 保存排序配置到偏好设置
-        preferencesManager.saveAlbumSortConfig(album.id, sortConfig)
+        // 从配置文件读取当前相册配置
+        val albumConfig = ConfigManager.readAlbumConfig()
+        // 更新相册排序配置
+        albumConfig.sortConfigs[album.id] = sortConfig
+        // 保存回配置文件
+        ConfigManager.writeAlbumConfig(albumConfig)
         
         // 重新加载相册图片
         loadAlbumImages(updatedAlbum)
@@ -2835,13 +2862,17 @@ class MainViewModel(private val context: Context) : ViewModel() {
      * 设置相册列表的排序配置
      */
     fun setAlbumsSortConfig(sortConfig: SortConfig) {
-        // 保存排序配置到偏好设置
-        preferencesManager.saveAlbumsSortConfig(sortConfig)
+        // 从配置文件读取当前相册配置
+        val albumConfig = ConfigManager.readAlbumConfig()
+        // 更新相册列表排序配置
+        albumConfig.albumsSortConfig = sortConfig
+        // 保存回配置文件
+        ConfigManager.writeAlbumConfig(albumConfig)
         
         // 重新加载相册数据以应用排序
         loadAlbumData()
     }
-
+    
     /**
      * 更新相册网格列数配置
      */
@@ -2852,8 +2883,12 @@ class MainViewModel(private val context: Context) : ViewModel() {
         // 更新当前网格列数
         gridColumnCount = validColumns
         
-        // 保存网格列数配置到偏好设置
-        preferencesManager.saveAlbumGridColumns(album.id, validColumns)
+        // 从配置文件读取当前相册配置
+        val albumConfig = ConfigManager.readAlbumConfig()
+        // 更新相册网格列数配置
+        albumConfig.gridColumns[album.id] = validColumns
+        // 保存回配置文件
+        ConfigManager.writeAlbumConfig(albumConfig)
         
         // 强制重新加载相册图片，以适应新的网格列数
         loadAlbumImages(album)
@@ -2954,10 +2989,13 @@ class MainViewModel(private val context: Context) : ViewModel() {
         expandedReferencedTagIds = emptySet()
         
         // 持久化清除的状态
-        preferencesManager.putString(PREF_ACTIVE_TAGS, "")
-        preferencesManager.putString(PREF_EXCLUDED_TAGS, "")
-        preferencesManager.putString(PREF_EXPANDED_TAGS, "")
-        preferencesManager.putString(PREF_EXPANDED_REFERENCED_TAGS, "")
+        // 重置标签配置并保存到文件
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.activeTagFilterIds = emptySet()
+        tagConfig.excludedTagIds = emptySet()
+        tagConfig.expandedTagIds = emptySet()
+        tagConfig.expandedReferencedTagIds = emptySet()
+        ConfigManager.writeTagConfig(tagConfig)
         
         // 清理过滤缓存，触发重新过滤
         clearFilterCache()

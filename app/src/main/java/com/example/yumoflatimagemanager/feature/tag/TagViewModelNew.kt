@@ -5,7 +5,7 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.yumoflatimagemanager.data.ImageItem
-import com.example.yumoflatimagemanager.data.PreferencesManager
+// 移除 PreferencesManager 导入，改为使用 ConfigManager
 import com.example.yumoflatimagemanager.data.local.AppDatabase
 import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagStatistics
@@ -39,7 +39,6 @@ class TagViewModelNew(
     // 数据库和仓库
     private val db by lazy { AppDatabase.get(context) }
     private val tagRepo by lazy { TagRepositoryImpl(db.tagDao()) }
-    private val preferencesManager = PreferencesManager.getInstance(context)
     
     // 状态管理
     val tagState = TagState()
@@ -50,7 +49,7 @@ class TagViewModelNew(
     private val filterManager = TagFilterManager(tagRepo, tagState)
     private val statisticsManager = TagStatisticsManager(tagRepo, mediaContentManager, tagState, viewModelScope)
     private val sortManager = TagSortManager(tagRepo, viewModelScope)
-    private val persistenceManager = TagPersistenceManager(preferencesManager, tagState)
+    private val persistenceManager = TagPersistenceManager(tagState)
     
     // 标签流
     val tagsFlow: Flow<List<TagWithChildren>> = ObserveTagsUseCase(tagRepo).invoke()
