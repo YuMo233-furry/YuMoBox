@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+    
+    <!-- PhotoView用于显示和缩放图片 -->
+    <com.github.chrisbanes.photoview.PhotoView
+        android:id="@+id/photo_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+    
+    <!-- 水印覆盖层 -->
+    <com.example.yumoflatimagemanager.ui.components.WatermarkOverlayView
+        android:id="@+id/watermark_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+    
+    <!-- 顶部工具栏 -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:background="#80000000"
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:gravity="center_vertical">
+        
+        <!-- 标题文字 -->
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="调整水印位置"
+            android:textColor="@android:color/white"
+            android:textSize="16sp"
+            android:gravity="start|center_vertical" />
+        
+        <!-- 导航区域 -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+            
+            <ImageButton
+                android:id="@+id/prev_button"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_media_previous"
+                android:tint="@android:color/white"
+                android:padding="8dp" />
+            
+            <TextView
+                android:id="@+id/image_counter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="1/5"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:minWidth="48dp"
+                android:gravity="center"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp" />
+            
+            <ImageButton
+                android:id="@+id/next_button"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_media_next"
+                android:tint="@android:color/white"
+                android:padding="8dp" />
+        </LinearLayout>
+        
+        <ImageButton
+            android:id="@+id/close_button"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:tint="@android:color/white"
+            android:layout_marginStart="8dp"
+            android:padding="8dp" />
+    </LinearLayout>
+    
+    <!-- 底部确认按钮 -->
+    <Button
+        android:id="@+id/confirm_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_margin="16dp"
+        android:background="@color/purple_200"
+        android:text="应用到所有选中图片"
+        android:textColor="@android:color/white" />
+</FrameLayout>

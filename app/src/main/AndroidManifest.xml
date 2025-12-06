@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Android 13+ (API 33+) 读取图片和视频权限 - 细粒度媒体权限 -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+    
+    <!-- Android 10-12 (API 29-32) 读取权限 -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    
+    <!-- 震动权限 - 用于触觉反馈 -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    
+    <!-- 
+        管理所有文件权限（Android 11+，可选）
+        注意：此权限仅用于特殊功能，不是应用运行的必需权限
+        Android 13+ 设备使用细粒度媒体权限（READ_MEDIA_IMAGES/VIDEO）即可正常工作
+        仅在需要完整文件系统访问时才会请求此权限
+    -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
+        tools:ignore="ScopedStorage" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application
+        android:name=".AppApplication"
+        android:requestLegacyExternalStorage="true"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/yumo"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/yumo"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.YumoBox"
+        android:enableOnBackInvokedCallback="true">
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/filepaths" />
+        </provider>
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.YumoBox">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- 图片查看器Activity -->
+        <activity
+            android:name=".ui.components.PhotoViewerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.YumoBox"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout">
+        </activity>
+
+        <!-- 水印预览Activity -->
+        <activity
+            android:name=".ui.components.WatermarkPreviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.YumoBox"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout">
+        </activity>
+
+        <!-- 图片选择器Activity -->
+        <activity
+            android:name=".ui.components.ImagePickerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.YumoBox">
+        </activity>
+
+        <!-- 注册媒体文件变化广播接收器 -->
+        <receiver
+            android:name=".media.MediaReceiver"
+            android:enabled="true"
+            android:exported="true">
+            <intent-filter>
+                <!-- 注意：ACTION_MEDIA_SCANNER_SCAN_FILE已在较新的API中弃用 -->
+                <!-- 但为了向后兼容，我们仍然保留它 -->
+                <action android:name="android.intent.action.MEDIA_SCANNER_SCAN_FILE" />
+                <action android:name="android.intent.action.MEDIA_SCANNER_FINISHED" />
+                <action android:name="android.intent.action.MEDIA_SCANNER_STARTED" />
+                <action android:name="android.intent.action.MEDIA_MOUNTED" />
+                <action android:name="android.intent.action.MEDIA_UNMOUNTED" />
+                <action android:name="android.intent.action.MEDIA_REMOVED" />
+                <action android:name="android.intent.action.MEDIA_EJECT" />
+                <data android:scheme="file" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>
