@@ -714,8 +714,9 @@ class MainViewModel(private val context: Context) : ViewModel() {
             // 触发引用刷新
             triggerTagReferenceRefresh()
             // 更新相关标签的统计信息
-            updateTagStatistics(parentTagId)
-            updateTagStatistics(childTagId)
+            clearTagStatisticsCacheForTag(parentTagId)
+            clearTagStatisticsCacheForTag(childTagId)
+            clearTagStatisticsCacheForTag(-1L) // 更新未分类标签统计
             
             // 检查父标签是否需要切换到普通组
             val allTags = tagsFlow.first()
@@ -1209,8 +1210,9 @@ class MainViewModel(private val context: Context) : ViewModel() {
                         // 触发引用刷新
                         triggerTagReferenceRefresh()
                         // 更新相关标签的统计信息
-                        updateTagStatistics(parentTagId)
-                        updateTagStatistics(childTagId)
+                        clearTagStatisticsCacheForTag(parentTagId)
+                        clearTagStatisticsCacheForTag(childTagId)
+                        clearTagStatisticsCacheForTag(-1L) // 更新未分类标签统计
                     }
                 } catch (e: Exception) {
                     // 处理循环引用等错误
