@@ -400,16 +400,34 @@ private fun TagSelectionTreeItem(
                         modifier = Modifier.weight(1f)
                     )
 
-                    // 数量
-                    val imageCount = if (viewModel != null) {
+                    // 图片数量统计（双括号显示）
+                    val directImageCount = if (viewModel != null) {
+                        val tagStats = remember(tag.id) {
+                            derivedStateOf { viewModel.tagStatistics[tag.id] }
+                        }
+                        tagStats.value?.directImageCount ?: 0
+                    } else 0
+                    val totalImageCount = if (viewModel != null) {
                         val tagStats = remember(tag.id) {
                             derivedStateOf { viewModel.tagStatistics[tag.id] }
                         }
                         tagStats.value?.totalImageCount ?: 0
                     } else tag.imageCount
-                    if (imageCount > 0) {
+                    
+                    // 显示直接图片数量（金黄色括号）
+                    if (directImageCount > 0) {
                         Text(
-                            text = "($imageCount)",
+                            text = "($directImageCount)",
+                            fontSize = 12.sp,
+                            color = Color(0xFFFFC107), // 使用固定的金黄色
+                            modifier = Modifier.padding(end = 4.dp)
+                        )
+                    }
+                    
+                    // 显示总图片数量（灰色括号）
+                    if (totalImageCount > 0) {
+                        Text(
+                            text = "($totalImageCount)",
                             fontSize = 12.sp,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -554,12 +572,33 @@ private fun TagSelectionLeafItem(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
-        val imageCount = if (viewModel != null) {
+        // 图片数量统计（双括号显示）
+        val directImageCount = if (viewModel != null) {
+            val tagStats = remember(tag.id) { derivedStateOf { viewModel.tagStatistics[tag.id] } }
+            tagStats.value?.directImageCount ?: 0
+        } else 0
+        val totalImageCount = if (viewModel != null) {
             val tagStats = remember(tag.id) { derivedStateOf { viewModel.tagStatistics[tag.id] } }
             tagStats.value?.totalImageCount ?: 0
         } else tag.imageCount
-        if (imageCount > 0) {
-            Text(text = "($imageCount)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        
+        // 显示直接图片数量（金黄色括号）
+        if (directImageCount > 0) {
+            Text(
+                text = "($directImageCount)",
+                fontSize = 12.sp,
+                color = Color(0xFFFFC107), // 使用固定的金黄色
+                modifier = Modifier.padding(end = 4.dp)
+            )
+        }
+        
+        // 显示总图片数量（灰色括号）
+        if (totalImageCount > 0) {
+            Text(
+                text = "($totalImageCount)",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
         Spacer(modifier = Modifier.width(6.dp))
         Checkbox(
@@ -651,16 +690,34 @@ private fun TagSelectionTreeItemWithGrayText(
                     modifier = Modifier.weight(1f)
                 )
 
-                // 数量（灰色）
-                val imageCount = if (viewModel != null) {
+                // 图片数量统计（双括号显示）
+                val directImageCount = if (viewModel != null) {
+                    val tagStats = remember(tag.id) {
+                        derivedStateOf { viewModel.tagStatistics[tag.id] }
+                    }
+                    tagStats.value?.directImageCount ?: 0
+                } else 0
+                val totalImageCount = if (viewModel != null) {
                     val tagStats = remember(tag.id) {
                         derivedStateOf { viewModel.tagStatistics[tag.id] }
                     }
                     tagStats.value?.totalImageCount ?: 0
                 } else tag.imageCount
-                if (imageCount > 0) {
+                
+                // 显示直接图片数量（金黄色括号）
+                if (directImageCount > 0) {
                     Text(
-                        text = "($imageCount)",
+                        text = "($directImageCount)",
+                        fontSize = 12.sp,
+                        color = Color(0xFFFFC107), // 使用固定的金黄色
+                        modifier = Modifier.padding(end = 4.dp)
+                    )
+                }
+                
+                // 显示总图片数量（灰色括号）
+                if (totalImageCount > 0) {
+                    Text(
+                        text = "($totalImageCount)",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) // 更浅的灰色
                     )
@@ -810,12 +867,33 @@ private fun TagSelectionLeafItemWithGrayText(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f)
             )
-            val imageCount = if (viewModel != null) {
+            // 图片数量统计（双括号显示）
+            val directImageCount = if (viewModel != null) {
+                val tagStats = remember(tag.id) { derivedStateOf { viewModel.tagStatistics[tag.id] } }
+                tagStats.value?.directImageCount ?: 0
+            } else 0
+            val totalImageCount = if (viewModel != null) {
                 val tagStats = remember(tag.id) { derivedStateOf { viewModel.tagStatistics[tag.id] } }
                 tagStats.value?.totalImageCount ?: 0
             } else tag.imageCount
-            if (imageCount > 0) {
-                Text(text = "($imageCount)", fontSize = 12.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) // 更浅的灰色
+            
+            // 显示直接图片数量（金黄色括号）
+            if (directImageCount > 0) {
+                Text(
+                    text = "($directImageCount)",
+                    fontSize = 12.sp,
+                    color = Color(0xFFFFC107), // 使用固定的金黄色
+                    modifier = Modifier.padding(end = 4.dp)
+                )
+            }
+            
+            // 显示总图片数量（灰色括号）
+            if (totalImageCount > 0) {
+                Text(
+                    text = "($totalImageCount)",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f) // 更浅的灰色
+                )
             }
             Spacer(modifier = Modifier.width(6.dp))
             Checkbox(
