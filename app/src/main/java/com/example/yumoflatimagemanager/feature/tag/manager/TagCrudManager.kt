@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.yumoflatimagemanager.common.DebounceHelper
 import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagReferenceEntity
+import com.example.yumoflatimagemanager.data.model.TagGroupFileManager
 import com.example.yumoflatimagemanager.data.repo.TagRepository
 import com.example.yumoflatimagemanager.feature.tag.model.DeletedTagCache
 import com.example.yumoflatimagemanager.feature.tag.state.TagDialogState
@@ -148,6 +149,9 @@ class TagCrudManager(
                     tagState.removeActiveTagFilterId(tag.id)
                 }
                 
+                // 从所有标签组中移除该标签引用
+                TagGroupFileManager.removeTagFromAllTagGroups(tag.id)
+                
                 // 删除标签（包含清理所有关联数据）
                 tagRepo.deleteTag(tag.id)
                 
@@ -214,6 +218,9 @@ class TagCrudManager(
                     childTags = childTags
                 )
                 
+                // 从所有标签组中移除该标签引用
+                TagGroupFileManager.removeTagFromAllTagGroups(tag.id)
+                
                 // 立即删除标签
                 tagRepo.deleteTag(tag.id)
                 
@@ -231,6 +238,8 @@ class TagCrudManager(
             } catch (e: Exception) {
                 e.printStackTrace()
                 // 如果缓存失败，仍然删除标签但不提供撤回功能
+                // 从所有标签组中移除该标签引用
+                TagGroupFileManager.removeTagFromAllTagGroups(tag.id)
                 tagRepo.deleteTag(tag.id)
                 onStatisticsUpdate(tag.id)
                 if (tag.parentId != null) {

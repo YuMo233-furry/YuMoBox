@@ -369,4 +369,26 @@ object TagGroupFileManager {
         val updatedTagGroupData = tagGroupData.withRemovedTag(tagId)
         return writeTagGroup(updatedTagGroupData)
     }
+    
+    /**
+     * 从所有标签组中移除标签引用
+     * @param tagId 标签ID
+     * @return 是否移除成功
+     */
+    fun removeTagFromAllTagGroups(tagId: Long): Boolean {
+        val allTagGroups = getAllTagGroups()
+        var success = true
+        
+        // 遍历所有标签组，移除标签引用
+        for (tagGroupData in allTagGroups) {
+            if (tagGroupData.tagIds.contains(tagId)) {
+                val updatedTagGroupData = tagGroupData.withRemovedTag(tagId)
+                if (!writeTagGroup(updatedTagGroupData)) {
+                    success = false
+                }
+            }
+        }
+        
+        return success
+    }
 }

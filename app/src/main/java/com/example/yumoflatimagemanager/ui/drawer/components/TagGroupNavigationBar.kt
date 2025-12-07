@@ -25,8 +25,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.DpSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.toSize
 import androidx.compose.ui.zIndex
 import com.example.yumoflatimagemanager.MainViewModel
 import com.example.yumoflatimagemanager.data.local.TagEntity
@@ -245,8 +249,10 @@ fun TagGroupNavigationBar(
                                 Modifier
                                     // 拖动时提高层级
                                     .zIndex(1f)
-                                    // 跟随手指移动
-                                    .offset(x = offset.x.dp, y = offset.y.dp)
+                                    // 跟随手指移动，使用像素单位
+                                    .offset {
+                                        IntOffset(offset.x.toInt(), offset.y.toInt())
+                                    }
                                     // 拖动中的样式
                                     .clip(MaterialTheme.shapes.medium)
                                     .background(MaterialTheme.colorScheme.primaryContainer)
@@ -270,56 +276,62 @@ fun TagGroupNavigationBar(
                                             onDrag = { change, dragAmount ->
                                                 change.consume()
                                                 if (draggedItemIndex != null) {
-                                                    // 使用增量偏移量，实现平滑跟随
+                                                    // 更新拖拽偏移量
                                                     offset += dragAmount
-                                                }
-                                            },
-                                            onDragEnd = {
-                                                if (draggedItemIndex != null) {
-                                                    // 计算新位置
+                                                    
+                                                    // 计算拖拽元素当前位置对应的网格索引，实现实时避让
                                                     val columns = 3
                                                     val itemsPerRow = columns
                                                     
-                                                    // 计算移动的距离对应的行和列变化
-                                                    val threshold = 50f
-                                                    val rowChange = (offset.y / threshold).toInt()
-                                                    val colChange = (offset.x / threshold).toInt()
+                                                    // 计算每个网格项的尺寸
+                                                    val itemWidth = size.width.toFloat()
+                                                    val itemHeight = size.height.toFloat()
+                                                    val itemSpacing = 12.dp.toPx()
                                                     
-                                                    // 计算新位置
-                                                    val oldRow = draggedItemIndex!! / itemsPerRow
-                                                    val oldCol = draggedItemIndex!! % itemsPerRow
-                                                    val newRow = (oldRow + rowChange).coerceIn(0, (tagGroupsState.size + itemsPerRow - 1) / itemsPerRow - 1)
-                                                    val newCol = (oldCol + colChange).coerceIn(0, itemsPerRow - 1)
+                                                    // 计算拖拽元素的绝对位置（相对于容器）
+                                                    val absoluteX = offset.x + (size.width.toFloat() / 2)
+                                                    val absoluteY = offset.y + (size.height.toFloat() / 2)
                                                     
-                                                    // 计算新索引
-                                                    var newIndex = newRow * itemsPerRow + newCol
+                                                    // 计算当前位置对应的网格坐标
+                                                    val currentCol = (absoluteX / (itemWidth + itemSpacing)).toInt()
+                                                    val currentRow = (absoluteY / (itemHeight + itemSpacing)).toInt()
+                                                    
+                                                    // 计算当前网格位置对应的索引
+                                                    var newIndex = currentRow * itemsPerRow + currentCol
+                                                    
                                                     // 确保新索引在有效范围内
                                                     newIndex = newIndex.coerceIn(0, tagGroupsState.size - 1)
                                                     
+                                                    // 只在索引变化时更新标签组顺序，实现实时避让
                                                     if (newIndex != draggedItemIndex) {
-                                                        // 更新标签组顺序
                                                         val reorderedGroups = tagGroupsState.toMutableList()
                                                         val movedGroup = reorderedGroups.removeAt(draggedItemIndex!!)
                                                         reorderedGroups.add(newIndex, movedGroup)
                                                         
-                                                        // 只更新本地状态，不立即更新数据库，避免UI卡顿
+                                                        // 更新本地状态，实现实时避让效果
                                                         tagGroupsState = reorderedGroups
                                                         
-                                                        // 使用协程异步更新数据库，避免UI卡顿
-                                                        coroutineScope.launch(Dispatchers.IO) {
-                                                            tagViewModel.reorderTagGroups(reorderedGroups)
-                                                        }
+                                                        // 更新拖拽元素的索引，确保后续计算正确
+                                                        draggedItemIndex = newIndex
+                                                    }
+                                                }
+                                            },
+                                            onDragEnd = {
+                                                if (draggedItemIndex != null) {
+                                                    // 使用协程异步更新数据库，避免UI卡顿
+                                                    coroutineScope.launch(Dispatchers.IO) {
+                                                        tagViewModel.reorderTagGroups(tagGroupsState)
                                                     }
                                                 }
                                                 
                                                 // 重置状态
-                                                draggedItemIndex = null
                                                 offset = Offset.Zero
+                                                draggedItemIndex = null
                                             },
                                             onDragCancel = {
                                                 // 拖拽取消，重置状态
-                                                draggedItemIndex = null
                                                 offset = Offset.Zero
+                                                draggedItemIndex = null
                                             }
                                         )
                                     }
@@ -592,8 +604,7 @@ private fun TagGroupItem(
             )
             // 适当的内边距
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            // 自适应宽度，确保文本有足够空间
-            .widthIn(min = 80.dp)
+            // 自适应宽度，根据内容自动调整
             // 点击处理
             .clickable {
                 val currentTime = System.currentTimeMillis()
