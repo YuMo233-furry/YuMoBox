@@ -105,17 +105,22 @@ fun ExpandableSearchButton(
         IconButton(
             onClick = {
                 isExpanded = !isExpanded
-                if (isExpanded) {
-                    // 展开时自动聚焦并唤起输入法
-                    focusRequester.requestFocus()
-                    keyboardController?.show()
-                }
             }
         ) {
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = if (isExpanded) "关闭搜索" else "搜索标签"
             )
+        }
+        
+        // 当isExpanded变为true时，延迟请求焦点，确保OutlinedTextField已经渲染
+        LaunchedEffect(isExpanded) {
+            if (isExpanded) {
+                // 使用延迟确保组件已经渲染
+                kotlinx.coroutines.delay(100)
+                focusRequester.requestFocus()
+                keyboardController?.show()
+            }
         }
     }
 }
