@@ -240,7 +240,7 @@ private fun TagManagerContent(
         var tagGroupFilteredTags by remember { mutableStateOf(tags) }
         
         // 监听标签组变化，更新过滤后的标签
-        LaunchedEffect(tags, selectedTagGroupId) {
+        LaunchedEffect(tags, selectedTagGroupId, viewModel.tagViewModel.tagGroupsFlow) {
             tagGroupFilteredTags = if (selectedTagGroupId == null) {
                 // 未选择任何标签组，显示所有标签
                 tags

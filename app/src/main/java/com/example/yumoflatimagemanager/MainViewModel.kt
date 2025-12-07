@@ -439,12 +439,29 @@ class MainViewModel(private val context: Context) : ViewModel() {
      * @return 该标签组下的标签列表
      */
     suspend fun getTagsByTagGroupId(tagGroupId: Long, allTags: List<com.example.yumoflatimagemanager.data.local.TagWithChildren>): List<com.example.yumoflatimagemanager.data.local.TagWithChildren> {
-        // 调用数据库查询，获取指定标签组下的标签ID列表
         return try {
-            // 从数据库获取该标签组下的所有标签ID
-            val tagIdsInGroup = tagViewModel.getTagsByTagGroupId(tagGroupId).map { it.id }.toSet()
-            // 从所有标签中过滤出该标签组下的标签
-            allTags.filter { tagIdsInGroup.contains(it.tag.id) }
+            if (tagGroupId == 1L) {
+                // 未分组标签组的特殊处理：显示所有不在任何标签组中的标签
+                
+                // 获取所有标签组
+                val allTagGroups = tagViewModel.tagGroupsFlow.first()
+                
+                // 获取所有标签组的标签ID集合
+                val allTagsInAnyGroup = mutableSetOf<Long>()
+                for (tagGroup in allTagGroups) {
+                    if (tagGroup.id != 1L) { // 排除未分组自身
+                        val tagIdsInGroup = tagViewModel.getTagsByTagGroupId(tagGroup.id).map { it.id }
+                        allTagsInAnyGroup.addAll(tagIdsInGroup)
+                    }
+                }
+                
+                // 找出所有标签中不在任何标签组中的标签
+                allTags.filter { !allTagsInAnyGroup.contains(it.tag.id) }
+            } else {
+                // 普通标签组：显示该组下的标签
+                val tagIdsInGroup = tagViewModel.getTagsByTagGroupId(tagGroupId).map { it.id }.toSet()
+                allTags.filter { tagIdsInGroup.contains(it.tag.id) }
+            }
         } catch (e: Exception) {
             Log.e("MainViewModel", "获取标签组下的标签失败: $tagGroupId", e)
             allTags // 发生错误时返回所有标签
