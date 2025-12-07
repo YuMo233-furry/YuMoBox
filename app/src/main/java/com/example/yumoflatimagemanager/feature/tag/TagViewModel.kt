@@ -14,7 +14,7 @@ import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagReferenceEntity
 import com.example.yumoflatimagemanager.data.local.TagStatistics
 import com.example.yumoflatimagemanager.data.local.TagWithChildren
-import com.example.yumoflatimagemanager.data.repo.TagRepositoryImpl
+import com.example.yumoflatimagemanager.data.repo.FileTagRepositoryImpl
 import com.example.yumoflatimagemanager.domain.usecase.ObserveTagsUseCase
 import com.example.yumoflatimagemanager.media.MediaContentManager
 import kotlinx.coroutines.Dispatchers
@@ -51,7 +51,7 @@ class TagViewModel(
     
     // 数据库和仓库
     private val db by lazy { AppDatabase.get(context) }
-    private val tagRepo by lazy { TagRepositoryImpl(db.tagDao()) }
+    private val tagRepo by lazy { FileTagRepositoryImpl(db.tagDao()) }
     private val preferencesManager = PreferencesManager.getInstance(context)
     
     // 标签展开状态与滚动位置持久化key

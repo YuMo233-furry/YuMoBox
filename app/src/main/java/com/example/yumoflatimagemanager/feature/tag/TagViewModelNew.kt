@@ -10,7 +10,7 @@ import com.example.yumoflatimagemanager.data.local.AppDatabase
 import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagStatistics
 import com.example.yumoflatimagemanager.data.local.TagWithChildren
-import com.example.yumoflatimagemanager.data.repo.TagRepositoryImpl
+import com.example.yumoflatimagemanager.data.repo.FileTagRepositoryImpl
 import com.example.yumoflatimagemanager.domain.usecase.ObserveTagsUseCase
 import com.example.yumoflatimagemanager.feature.tag.manager.TagCrudManager
 import com.example.yumoflatimagemanager.feature.tag.manager.TagFilterManager
@@ -38,7 +38,7 @@ class TagViewModelNew(
     
     // 数据库和仓库
     private val db by lazy { AppDatabase.get(context) }
-    private val tagRepo by lazy { TagRepositoryImpl(db.tagDao()) }
+    private val tagRepo by lazy { FileTagRepositoryImpl(db.tagDao()) }
     
     // 状态管理
     val tagState = TagState()

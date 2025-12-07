@@ -42,7 +42,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.launch
 import com.example.yumoflatimagemanager.data.local.AppDatabase
-import com.example.yumoflatimagemanager.data.repo.TagRepositoryImpl
+import com.example.yumoflatimagemanager.data.repo.FileTagRepositoryImpl
 import com.example.yumoflatimagemanager.domain.usecase.ObserveTagsUseCase
 import com.example.yumoflatimagemanager.sync.OneDriveSyncWorker
 import kotlinx.coroutines.flow.Flow
@@ -111,7 +111,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
 
     // 标签与同步最小整合
     private val db by lazy { AppDatabase.get(context) }
-    private val tagRepo by lazy { TagRepositoryImpl(db.tagDao()) }
+    private val tagRepo by lazy { FileTagRepositoryImpl(db.tagDao()) }
     val tagsFlow: Flow<List<com.example.yumoflatimagemanager.data.local.TagWithChildren>> =
         ObserveTagsUseCase(tagRepo).invoke()
 
