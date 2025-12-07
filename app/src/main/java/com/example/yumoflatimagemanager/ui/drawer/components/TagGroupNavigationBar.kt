@@ -227,49 +227,65 @@ fun TagGroupNavigationBar(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     
-                    // 平铺显示所有标签组，每行3个标签，支持拖拽排序
+                    // 平铺显示所有标签组，支持拖拽排序
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(3),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.height(300.dp)
                     ) {
                         itemsIndexed(tagGroupsState) { index, tagGroup ->
+                            // 拖动相关状态
+                            var dragOffsetY by remember { mutableStateOf(0f) }
                             val isDragging = draggedItemIndex == index
                             
                             Box(
                                 modifier = Modifier
-                                    .background(if (isDragging) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                                    .border(
-                                        width = if (isDragging) 2.dp else 0.dp,
-                                        color = if (isDragging) MaterialTheme.colorScheme.primary else Color.Transparent
-                                    )
-                                    .padding(8.dp)
+                                    // 添加拖动跟随效果
+                                    .offset(y = if (isDragging) dragOffsetY.dp else 0.dp)
+                                    // 拖动时提高层级
                                     .zIndex(if (isDragging) 1f else 0f)
+                                    // 指针输入处理
                                     .pointerInput(tagGroup) {
                                         // 长按1.5秒后直接拖动排序
                                         detectDragGesturesAfterLongPress(
-                                            onDragStart = { draggedItemIndex = index },
+                                            onDragStart = {
+                                                draggedItemIndex = index
+                                                dragOffsetY = 0f
+                                            },
                                             onDrag = { change, offset ->
                                                 change.consume()
-                                                // 拖拽过程中更新位置
                                                 if (draggedItemIndex != null) {
-                                                    val newIndex = (draggedItemIndex!! + (offset.y / 100).toInt()).coerceIn(0, tagGroupsState.size - 1)
+                                                    // 更新拖动偏移量，实现跟随手指效果
+                                                    dragOffsetY = offset.y
+                                                    
+                                                    // 计算新位置，实现自动避让
+                                                    val newIndex = (draggedItemIndex!! + (offset.y / 50).toInt()).coerceIn(0, tagGroupsState.size - 1)
                                                     if (newIndex != draggedItemIndex) {
-                                                        // 更新标签组顺序
+                                                        // 更新标签组顺序，实现自动避让
                                                         val reorderedGroups = tagGroupsState.toMutableList()
                                                         val movedGroup = reorderedGroups.removeAt(draggedItemIndex!!)
                                                         reorderedGroups.add(newIndex, movedGroup)
                                                         
                                                         // 更新本地状态，立即反映拖拽效果
                                                         tagGroupsState = reorderedGroups
+                                                        
+                                                        // 重置拖动偏移量，准备下一次拖动
+                                                        dragOffsetY = 0f
                                                     }
                                                 }
                                             },
                                             onDragEnd = {
                                                 // 拖拽结束，更新数据库中的排序
                                                 tagViewModel.reorderTagGroups(tagGroupsState)
+                                                // 重置状态
                                                 draggedItemIndex = null
+                                                dragOffsetY = 0f
+                                            },
+                                            onDragCancel = {
+                                                // 拖拽取消，重置状态
+                                                draggedItemIndex = null
+                                                dragOffsetY = 0f
                                             }
                                         )
                                     }
@@ -317,7 +333,10 @@ fun TagGroupNavigationBar(
                                             }
                                             showRenameDialog = true
                                         }
-                                    }
+                                    },
+                                    // 传递拖动状态和偏移量
+                                    isDragging = isDragging,
+                                    dragOffset = dragOffsetY
                                 )
                             }
                         }
@@ -520,7 +539,9 @@ private fun TagGroupItem(
     tagGroup: TagGroupEntity,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onDoubleClick: (() -> Unit)? = null
+    onDoubleClick: (() -> Unit)? = null,
+    isDragging: Boolean = false,
+    dragOffset: Float = 0f
 ) {
     // 双击检测状态
     var lastClickTime by remember { mutableStateOf(0L) }
@@ -528,18 +549,36 @@ private fun TagGroupItem(
     
     Box(
         modifier = Modifier
+            // 添加拖动跟随效果
+            .offset(y = dragOffset.dp)
+            // 拖动时提高层级
+            .zIndex(if (isDragging) 1f else 0f)
+            // 调整背景和边框样式
             .clip(MaterialTheme.shapes.medium)
             .background(
-                if (isSelected) MaterialTheme.colorScheme.primary
-                else MaterialTheme.colorScheme.surfaceVariant
+                when {
+                    isDragging -> MaterialTheme.colorScheme.primaryContainer
+                    isSelected -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.surfaceVariant
+                }
             )
             .border(
-                width = 2.dp,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                else Color.Transparent,
+                width = when {
+                    isDragging -> 2.dp
+                    isSelected -> 2.dp
+                    else -> 0.dp
+                },
+                color = when {
+                    isDragging -> MaterialTheme.colorScheme.primary
+                    isSelected -> MaterialTheme.colorScheme.onPrimary
+                    else -> Color.Transparent
+                },
                 shape = MaterialTheme.shapes.medium
             )
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            // 增加内边距，确保不同长度的名称都能正常显示
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            // 自适应宽度，移除固定宽度限制
+            .wrapContentWidth()
             .clickable {
                 val currentTime = System.currentTimeMillis()
                 if (currentTime - lastClickTime < DOUBLE_CLICK_DELAY && onDoubleClick != null) {
@@ -556,15 +595,34 @@ private fun TagGroupItem(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            // 添加拖动指示器
+            if (isDragging) {
+                Icon(
+                    imageVector = Icons.Default.DragIndicator,
+                    contentDescription = "拖动指示器",
+                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(16.dp)
+                )
+            }
+            
             // 标签组名称
             Text(
                 text = tagGroup.name,
-                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
+                fontWeight = when {
+                    isDragging -> FontWeight.SemiBold
+                    isSelected -> FontWeight.Bold
+                    else -> FontWeight.Medium
+                },
                 fontSize = 14.sp,
-                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                else MaterialTheme.colorScheme.onSurface,
+                color = when {
+                    isSelected -> MaterialTheme.colorScheme.onPrimary
+                    isDragging -> MaterialTheme.colorScheme.onSurface
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, false) // 允许文本自适应宽度
             )
         }
     }
