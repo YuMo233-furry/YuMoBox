@@ -5,13 +5,12 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.yumoflatimagemanager.data.ImageItem
-// 移除 PreferencesManager 导入，改为使用 ConfigManager
-import com.example.yumoflatimagemanager.data.local.AppDatabase
 import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagGroupEntity
-import com.example.yumoflatimagemanager.data.local.TagGroupTagCrossRef
 import com.example.yumoflatimagemanager.data.local.TagStatistics
 import com.example.yumoflatimagemanager.data.local.TagWithChildren
+import com.example.yumoflatimagemanager.data.model.TagGroupData
+import com.example.yumoflatimagemanager.data.model.TagGroupFileManager
 import com.example.yumoflatimagemanager.data.repo.FileTagRepositoryImpl
 import com.example.yumoflatimagemanager.domain.usecase.ObserveTagsUseCase
 import com.example.yumoflatimagemanager.feature.tag.manager.TagCrudManager
@@ -25,9 +24,13 @@ import com.example.yumoflatimagemanager.feature.tag.state.TagState
 import com.example.yumoflatimagemanager.media.MediaContentManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.util.concurrent.atomic.AtomicLong
 
 /**
  * 标签 ViewModel - 协调器模式
@@ -39,7 +42,7 @@ class TagViewModelNew(
 ) : ViewModel() {
     
     // 数据库和仓库
-    private val db by lazy { AppDatabase.get(context) }
+    private val db by lazy { com.example.yumoflatimagemanager.data.local.AppDatabase.get(context) }
     private val tagRepo by lazy { FileTagRepositoryImpl(db.tagDao()) }
     
     // 状态管理
@@ -54,10 +57,32 @@ class TagViewModelNew(
     private val persistenceManager = TagPersistenceManager(tagState)
     
     // 标签流
-    val tagsFlow: Flow<List<TagWithChildren>> = ObserveTagsUseCase(tagRepo).invoke()
+    val tagsFlow: Flow<List<com.example.yumoflatimagemanager.data.local.TagWithChildren>> = ObserveTagsUseCase(tagRepo).invoke()
     
-    // 标签组流
-    val tagGroupsFlow: Flow<List<TagGroupEntity>> = db.tagDao().getAllTagGroups()
+    // 标签组流 - 从文件系统获取
+    val tagGroupsFlow: Flow<List<com.example.yumoflatimagemanager.data.local.TagGroupEntity>> = flow {
+        // 初始加载
+        emit(getAllTagGroupsFromFiles())
+        
+        // 监听标签组变化
+        TagGroupFileManager.tagGroupChanges.collect {
+            emit(getAllTagGroupsFromFiles())
+        }
+    }
+    
+    // 用于生成标签组ID的原子计数器
+    private val tagGroupIdCounter = AtomicLong(1000L)
+    
+    // 初始化标签组ID计数器
+    init {
+        viewModelScope.launch(Dispatchers.IO) {
+            val allTagGroups = TagGroupFileManager.getAllTagGroups()
+            if (allTagGroups.isNotEmpty()) {
+                val maxId = allTagGroups.maxByOrNull { it.id }?.id ?: 1000L
+                tagGroupIdCounter.set(maxId + 1)
+            }
+        }
+    }
     
     // ==================== 标签组状态访问器（代理到 tagState） ====================
     
@@ -373,6 +398,28 @@ class TagViewModelNew(
     
     // ==================== 标签组管理 ====================
     
+    // 从TagGroupData转换为TagGroupEntity
+    private fun TagGroupData.toTagGroupEntity() = com.example.yumoflatimagemanager.data.local.TagGroupEntity(
+        id = id,
+        name = name,
+        sortOrder = sortOrder,
+        isDefault = isDefault
+    )
+    
+    // 从TagGroupEntity转换为TagGroupData
+    private fun com.example.yumoflatimagemanager.data.local.TagGroupEntity.toTagGroupData(tagIds: List<Long> = emptyList()) = TagGroupData(
+        id = id,
+        name = name,
+        sortOrder = sortOrder,
+        isDefault = isDefault,
+        tagIds = tagIds
+    )
+    
+    // 从文件系统获取所有标签组
+    private fun getAllTagGroupsFromFiles(): List<com.example.yumoflatimagemanager.data.local.TagGroupEntity> {
+        return TagGroupFileManager.getAllTagGroups().map { it.toTagGroupEntity() }
+    }
+    
     // 标签组状态操作
     fun selectTagGroup(groupId: Long) {
         tagState.selectTagGroup(groupId)
@@ -394,37 +441,53 @@ class TagViewModelNew(
     fun createTagGroup(name: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val maxSortOrder = db.tagDao().getMaxTagGroupSortOrder() ?: 0
-                val tagGroup = TagGroupEntity(name = name, sortOrder = maxSortOrder + 1000)
-                db.tagDao().insertTagGroup(tagGroup)
+                val allTagGroups = TagGroupFileManager.getAllTagGroups()
+                val maxSortOrder = allTagGroups.maxByOrNull { it.sortOrder }?.sortOrder ?: 0
+                val newTagGroup = TagGroupData(
+                    id = tagGroupIdCounter.getAndIncrement(),
+                    name = name,
+                    sortOrder = maxSortOrder + 1000,
+                    isDefault = false,
+                    tagIds = emptyList()
+                )
+                TagGroupFileManager.writeTagGroup(newTagGroup)
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "创建标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "创建标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
     
-    fun renameTagGroup(tagGroup: TagGroupEntity, newName: String) {
+    fun renameTagGroup(tagGroup: com.example.yumoflatimagemanager.data.local.TagGroupEntity, newName: String) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val updatedGroup = tagGroup.copy(name = newName)
-                db.tagDao().updateTagGroup(updatedGroup)
+                val tagGroupData = TagGroupFileManager.readTagGroup(tagGroup.id)
+                if (tagGroupData != null) {
+                    val updatedTagGroupData = tagGroupData.copy(name = newName)
+                    TagGroupFileManager.writeTagGroup(updatedTagGroupData)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "重命名标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "重命名标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
     
-    fun deleteTagGroup(tagGroup: TagGroupEntity) {
+    fun deleteTagGroup(tagGroup: com.example.yumoflatimagemanager.data.local.TagGroupEntity) {
         if (tagGroup.isDefault) return // 不可删除默认组
         
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                db.tagDao().deleteTagGroup(tagGroup)
+                TagGroupFileManager.deleteTagGroup(tagGroup.id)
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "删除标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "删除标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -433,29 +496,9 @@ class TagViewModelNew(
     fun addTagToTagGroup(tagId: Long, tagGroupId: Long) {
         viewModelScope.launch {
             try {
-                // 检查标签组是否存在
-                val tagGroup = withContext(Dispatchers.IO) { db.tagDao().getTagGroupById(tagGroupId) }
-                
-                println("DEBUG: 尝试添加标签到标签组 - 标签ID: $tagId, 标签组ID: $tagGroupId")
-                
-                // 查看所有标签组
-                val allTagGroups = withContext(Dispatchers.IO) { db.tagDao().getAllTagGroupsList() }
-                println("DEBUG: 所有标签组: $allTagGroups")
-                
-                if (tagGroup == null) {
-                    throw IllegalArgumentException("标签组 $tagGroupId 不存在")
-                }
-                
-                // 在IO线程执行数据库操作
-                withContext(Dispatchers.IO) {
-                    val crossRef = TagGroupTagCrossRef(tagGroupId = tagGroupId, tagId = tagId)
-                    db.tagDao().insertTagGroupTagCrossRef(crossRef)
-                    println("DEBUG: 成功将标签 $tagId 添加到标签组 $tagGroupId")
-                }
+                TagGroupFileManager.addTagToTagGroup(tagId, tagGroupId)
             } catch (e: Exception) {
                 e.printStackTrace()
-                println("ERROR: 添加标签到标签组失败 - 标签ID: $tagId, 标签组ID: $tagGroupId, 错误: ${e.message}")
-                // 在主线程显示Toast
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "添加标签到标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
@@ -466,15 +509,9 @@ class TagViewModelNew(
     fun removeTagFromTagGroup(tagId: Long, tagGroupId: Long) {
         viewModelScope.launch {
             try {
-                // 在IO线程执行数据库操作
-                withContext(Dispatchers.IO) {
-                    db.tagDao().deleteTagFromTagGroup(tagGroupId, tagId)
-                    println("DEBUG: 成功从标签组 $tagGroupId 移除标签 $tagId")
-                }
+                TagGroupFileManager.removeTagFromTagGroup(tagId, tagGroupId)
             } catch (e: Exception) {
                 e.printStackTrace()
-                println("ERROR: 从标签组移除标签失败 - 标签ID: $tagId, 标签组ID: $tagGroupId, 错误: ${e.message}")
-                // 在主线程显示Toast
                 withContext(Dispatchers.Main) {
                     Toast.makeText(context, "从标签组移除标签失败: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
@@ -486,34 +523,52 @@ class TagViewModelNew(
     fun updateTagGroupSortOrder(tagGroupId: Long, sortOrder: Int) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                db.tagDao().updateTagGroupSortOrder(tagGroupId, sortOrder)
+                val tagGroupData = TagGroupFileManager.readTagGroup(tagGroupId)
+                if (tagGroupData != null) {
+                    val updatedTagGroupData = tagGroupData.copy(sortOrder = sortOrder)
+                    TagGroupFileManager.writeTagGroup(updatedTagGroupData)
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "更新标签组排序失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "更新标签组排序失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
     
     // 标签组拖拽排序
-    fun reorderTagGroups(tagGroups: List<TagGroupEntity>) {
+    fun reorderTagGroups(tagGroups: List<com.example.yumoflatimagemanager.data.local.TagGroupEntity>) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                tagGroups.forEachIndexed { index, tagGroup ->
-                    db.tagDao().updateTagGroupSortOrder(tagGroup.id, index * 1000)
+                for ((index, tagGroup) in tagGroups.withIndex()) {
+                    val tagGroupData = TagGroupFileManager.readTagGroup(tagGroup.id)
+                    if (tagGroupData != null) {
+                        val updatedTagGroupData = tagGroupData.copy(sortOrder = index * 1000)
+                        TagGroupFileManager.writeTagGroup(updatedTagGroupData)
+                    }
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "重新排序标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "重新排序标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
     
     // 获取标签组下的标签
-    suspend fun getTagsByTagGroupId(tagGroupId: Long): List<TagEntity> {
+    suspend fun getTagsByTagGroupId(tagGroupId: Long): List<com.example.yumoflatimagemanager.data.local.TagEntity> {
         return try {
-            val tags = db.tagDao().getTagsByTagGroupId(tagGroupId)
-            println("DEBUG: 获取标签组 $tagGroupId 下的标签: ${tags.map { it.id }}")
-            tags
+            // 从文件系统获取标签组数据
+            val tagGroupData = TagGroupFileManager.readTagGroup(tagGroupId)
+            if (tagGroupData == null) {
+                return emptyList()
+            }
+            
+            // 这里需要从标签管理器获取对应的标签实体
+            // 目前先返回空列表，后续需要完善
+            emptyList()
         } catch (e: Exception) {
             e.printStackTrace()
             println("ERROR: 获取标签组下的标签失败 - 标签组ID: $tagGroupId, 错误: ${e.message}")
@@ -522,9 +577,10 @@ class TagViewModelNew(
     }
     
     // 获取标签所属的标签组
-    suspend fun getTagGroupsByTagId(tagId: Long): List<TagGroupEntity> {
+    suspend fun getTagGroupsByTagId(tagId: Long): List<com.example.yumoflatimagemanager.data.local.TagGroupEntity> {
         return try {
-            db.tagDao().getTagGroupsByTagId(tagId)
+            val tagGroupsData = TagGroupFileManager.getTagGroupsByTagId(tagId)
+            tagGroupsData.map { it.toTagGroupEntity() }
         } catch (e: Exception) {
             e.printStackTrace()
             emptyList()
@@ -562,8 +618,24 @@ class TagViewModelNew(
         }
     }
     
-    suspend fun getTagWithChildrenForUi(tagId: Long): TagWithChildren? {
-        return db.tagDao().getTagWithChildren(tagId)
+    suspend fun getTagWithChildrenForUi(tagId: Long): com.example.yumoflatimagemanager.data.local.TagWithChildren? {
+        return try {
+            tagRepo.getTagById(tagId)?.let { tag ->
+                val children = tagRepo.getTagsByParentId(tagId)
+                val tagReferences = tagRepo.getTagReferences(tagId)
+                val tagReferenceEntities = tagReferences.map { ref -> 
+                    com.example.yumoflatimagemanager.data.local.TagReferenceEntity(
+                        parentTagId = tagId, 
+                        childTagId = ref.tag.id, 
+                        sortOrder = ref.referenceSortOrder
+                    )
+                }
+                com.example.yumoflatimagemanager.data.local.TagWithChildren(tag, children, tagReferenceEntities)
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
     }
     
     // ==================== 生命周期 ====================

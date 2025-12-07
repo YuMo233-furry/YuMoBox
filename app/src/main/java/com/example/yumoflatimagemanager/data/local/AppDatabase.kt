@@ -11,7 +11,7 @@ import java.io.File
 
 @Database(
     entities = [TagEntity::class, MediaTagCrossRef::class, TagReferenceEntity::class, TagGroupEntity::class, TagGroupTagCrossRef::class, com.example.yumoflatimagemanager.data.WatermarkPreset::class],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -29,7 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
 					AppDatabase::class.java,
 					"yumo_box.db"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8)
                 .fallbackToDestructiveMigration() // 添加这行以防止迁移失败
                 .build().also { INSTANCE = it }
 			}
@@ -186,6 +186,13 @@ abstract class AppDatabase : RoomDatabase() {
 
                 // 插入默认的"未分组"标签组
                 database.execSQL("INSERT INTO tag_groups (id, name, sortOrder, isDefault) VALUES (1, '未分组', 0, 1)")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 空迁移，仅用于更新版本号
+                // 由于我们将标签组数据迁移到了外部文件系统，这里不需要对数据库进行任何更改
             }
         }
 	}
