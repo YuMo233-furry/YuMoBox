@@ -97,6 +97,12 @@ class MainViewModel(private val context: Context) : ViewModel() {
     private val _tagViewModel by lazy { 
         com.example.yumoflatimagemanager.feature.tag.TagViewModelNew(context, mediaContentManager)
     }
+    
+    // 公开的标签视图模型，供UI组件使用
+    val tagViewModel get() = _tagViewModel
+    
+    // 标签组数据流
+    val tagGroupsFlow get() = _tagViewModel.tagGroupsFlow
     // ==============================================
     
     // 排序模式状态
@@ -425,6 +431,19 @@ class MainViewModel(private val context: Context) : ViewModel() {
         val successCount: Int,
         val failureCount: Int
     )
+    
+    /**
+     * 根据标签组ID获取标签列表
+     * @param tagGroupId 标签组ID
+     * @param allTags 所有标签列表
+     * @return 该标签组下的标签列表
+     */
+    fun getTagsByTagGroupId(tagGroupId: Long, allTags: List<com.example.yumoflatimagemanager.data.local.TagWithChildren>): List<com.example.yumoflatimagemanager.data.local.TagWithChildren> {
+        // 此处应该调用数据库查询，获取指定标签组下的标签ID列表
+        // 由于当前未实现完整的标签组与标签关联查询，先返回所有标签
+        // 后续会替换为真实的数据库查询逻辑
+        return allTags
+    }
 
     // 过滤：切换标签
     fun toggleTagFilter(tagId: Long) {

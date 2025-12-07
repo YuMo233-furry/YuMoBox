@@ -61,7 +61,7 @@ class TagViewModelNew(
     
     // ==================== 标签组状态访问器（代理到 tagState） ====================
     
-    val selectedTagGroupId: Long get() = tagState.selectedTagGroupId
+    val selectedTagGroupId: Long? get() = tagState.selectedTagGroupId
     val isTagGroupDragMode: Boolean get() = tagState.isTagGroupDragMode
     val isTagGroupManagementVisible: Boolean get() = tagState.isTagGroupManagementVisible
     

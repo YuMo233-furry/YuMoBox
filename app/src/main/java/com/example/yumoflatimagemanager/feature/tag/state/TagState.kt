@@ -33,8 +33,8 @@ class TagState {
     
     // ==================== 标签组状态 ====================
     
-    /** 当前选中的标签组ID */
-    var selectedTagGroupId by mutableStateOf<Long>(1L) // 默认选中"未分组"标签组
+    /** 当前选中的标签组ID，null表示未选择任何标签组，显示所有标签 */
+    var selectedTagGroupId by mutableStateOf<Long?>(1L) // 默认选中"未分组"标签组，null表示显示所有标签
         private set
         
     /** 标签组展开状态 */
@@ -148,7 +148,12 @@ class TagState {
     // ==================== 标签组状态更新方法 ====================
     
     fun selectTagGroup(groupId: Long) {
-        selectedTagGroupId = groupId
+        // 实现未选中功能：重复点击已选中标签组进入未选择状态
+        selectedTagGroupId = if (selectedTagGroupId == groupId) {
+            null // 未选择任何标签组，显示所有标签
+        } else {
+            groupId // 选中指定标签组
+        }
     }
     
     fun toggleTagGroupExpanded(groupId: Long) {

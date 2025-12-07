@@ -231,15 +231,30 @@ private fun TagManagerContent(
         viewModel.updateTagStatisticsBatchIfNeeded(tagIds)
     }
         
-        // 搜索过滤逻辑 - 简化版，暂时只支持关键词搜索，不包含标签组过滤
-        val filteredTags = remember(tags, searchQuery) {
-            if (searchQuery.isBlank()) {
+        // 标签组过滤逻辑 - 根据当前选中的标签组ID过滤标签
+        val selectedTagGroupId by remember {
+            derivedStateOf { viewModel.tagViewModel.selectedTagGroupId }
+        }
+        
+        // 搜索和标签组结合的过滤逻辑
+        val filteredTags = remember(tags, searchQuery, selectedTagGroupId) {
+            // 先根据标签组过滤
+            var result = if (selectedTagGroupId == null) {
+                // 未选择任何标签组，显示所有标签
                 tags
             } else {
-                tags.filter { tagWithChildren ->
+                // 选择了特定标签组，只显示该组下的标签
+                viewModel.getTagsByTagGroupId(selectedTagGroupId!!, tags)
+            }
+            
+            // 再根据搜索关键词过滤
+            if (searchQuery.isNotBlank()) {
+                result = result.filter { tagWithChildren ->
                     tagWithChildren.tag.name.contains(searchQuery, ignoreCase = true)
                 }
             }
+            
+            result
         }
         
     Column(
