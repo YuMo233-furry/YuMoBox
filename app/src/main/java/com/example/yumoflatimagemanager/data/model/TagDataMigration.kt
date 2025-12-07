@@ -4,7 +4,6 @@ import android.content.Context
 import android.util.Log
 import com.example.yumoflatimagemanager.data.ConfigManager
 import com.example.yumoflatimagemanager.data.local.AppDatabase
-import com.example.yumoflatimagemanager.data.local.TagData
 import com.example.yumoflatimagemanager.data.model.TagData.ReferencedTag
 import com.example.yumoflatimagemanager.data.model.TagData.ParentReference
 

@@ -67,5 +67,7 @@ data class WatermarkConfig(
  */
 data class MigrationConfig(
     // 是否已完成配置迁移
-    var isConfigMigrated: Boolean = false
+    var isConfigMigrated: Boolean = false,
+    // 是否已完成标签数据迁移
+    var isTagMigrationCompleted: Boolean = false
 )

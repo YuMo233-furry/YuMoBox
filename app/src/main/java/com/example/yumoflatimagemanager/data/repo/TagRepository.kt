@@ -407,29 +407,31 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
         }
     }
     
-    override suspend fun deleteTag(id: Long) = withContext(Dispatchers.IO) {
-        // 1. 获取所有标签
-        val allTags = TagFileManager.getAllTags()
-        
-        // 2. 遍历所有标签，更新引用关系
-        for (tagData in allTags) {
-            // 2.1 删除该标签的所有引用关系（作为父标签）
-            tagData.referencedTags.removeIf { it.childTagId == id }
+    override suspend fun deleteTag(id: Long) {
+        withContext(Dispatchers.IO) {
+            // 1. 获取所有标签
+            val allTags = TagFileManager.getAllTags()
             
-            // 2.2 删除该标签的所有被引用关系（作为引用标签）
-            tagData.parentReferences.removeIf { it.parentTagId == id }
-            
-            // 2.3 处理子标签：将子标签的父级设为null
-            if (tagData.parentId == id) {
-                tagData.parentId = null
+            // 2. 遍历所有标签，更新引用关系
+            for (tagData in allTags) {
+                // 2.1 删除该标签的所有引用关系（作为父标签）
+                tagData.referencedTags.removeIf { it.childTagId == id }
+                
+                // 2.2 删除该标签的所有被引用关系（作为引用标签）
+                tagData.parentReferences.removeIf { it.parentTagId == id }
+                
+                // 2.3 处理子标签：将子标签的父级设为null
+                if (tagData.parentId == id) {
+                    tagData.parentId = null
+                }
+                
+                // 2.4 更新标签
+                TagFileManager.writeTag(tagData)
             }
             
-            // 2.4 更新标签
-            TagFileManager.writeTag(tagData)
+            // 3. 最后删除标签本身
+            TagFileManager.deleteTag(id)
         }
-        
-        // 3. 最后删除标签本身
-        TagFileManager.deleteTag(id)
     }
     
     override suspend fun addTagToMedia(mediaPath: String, tagId: Long) = withContext(Dispatchers.IO) {
@@ -479,7 +481,7 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
     
     override suspend fun areAllMediaTagged(mediaPaths: List<String>, tagId: Long): Boolean = withContext(Dispatchers.IO) {
         val tagData = TagFileManager.readTag(tagId)
-        tagData?.mediaPaths?.let {\ tagMediaPaths ->
+        tagData?.mediaPaths?.let { tagMediaPaths ->
             mediaPaths.all { tagMediaPaths.contains(it) }
         } ?: false
     }
@@ -685,10 +687,10 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
         val allTags = TagFileManager.getAllTags()
         val parentTagData = allTags.find { it.id == parentTagId }
         
-        parentTagData?.let {\ tagData ->
+        parentTagData?.let { tagData ->
             tagData.referencedTags.mapNotNull { ref ->
                 val childTagData = allTags.find { it.id == ref.childTagId }
-                childTagData?.let {\ childTag ->
+                childTagData?.let { childTag ->
                     TagWithReferenceOrder(childTag.toTagEntity(), ref.sortOrder)
                 }
             }
@@ -699,7 +701,7 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
     override suspend fun getTagReferencesByChildId(childTagId: Long): List<TagReferenceEntity> = withContext(Dispatchers.IO) {
         val tagData = TagFileManager.readTag(childTagId)
         
-        tagData?.let {\ tag ->
+        tagData?.let { tag ->
             tag.parentReferences.map { parentRef ->
                 TagReferenceEntity(
                     parentTagId = parentRef.parentTagId,
@@ -736,10 +738,11 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
             }
             
             // 获取通过层级关系（parentId）的父标签
-            if (tagData?.parentId != null && tagData.parentId !in visited) {
-                result.add(tagData.parentId)
-                visited.add(tagData.parentId)
-                queue.add(tagData.parentId)
+            val parentId = tagData?.parentId
+            if (parentId != null && parentId !in visited) {
+                result.add(parentId)
+                visited.add(parentId)
+                queue.add(parentId)
             }
         }
         
@@ -751,7 +754,7 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
         val allTags = TagFileManager.getAllTags()
         val tagData = allTags.find { it.id == tagId }
         
-        tagData?.let {\ tag ->
+        tagData?.let { tag ->
             // 计算直接图片数量
             val directCount = tag.mediaPaths.size
             
