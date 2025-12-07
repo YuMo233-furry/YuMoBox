@@ -165,6 +165,27 @@ class TagStatisticsManager(
         
         // 立即重新计算该标签的统计信息
         updateTagStatistics(tagId)
+        
+        // 异步更新所有父标签的统计信息（包括引用父标签）
+        scope.launch(Dispatchers.IO) {
+            try {
+                // 获取所有父标签ID（包括直接父标签和引用父标签）
+                val parentTagIds = tagRepo.getParentTagIds(tagId)
+                
+                // 递归更新所有父标签的统计信息
+                parentTagIds.forEach { parentTagId ->
+                    // 清除父标签的缓存
+                    tagStatisticsCache.remove(parentTagId)
+                    statisticsUpdateJobs[parentTagId]?.cancel()
+                    statisticsUpdateJobs.remove(parentTagId)
+                    
+                    // 重新计算父标签的统计信息
+                    updateTagStatistics(parentTagId)
+                }
+            } catch (e: Exception) {
+                Log.e("TagStatisticsManager", "更新父标签统计信息失败", e)
+            }
+        }
     }
 }
 
