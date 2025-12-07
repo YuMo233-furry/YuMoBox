@@ -22,17 +22,12 @@ abstract class AppDatabase : RoomDatabase() {
 		@Volatile private var INSTANCE: AppDatabase? = null
 		fun get(context: Context): AppDatabase = 
 			INSTANCE ?: synchronized(this) {
-                // 获取公共文件夹路径，用于存储数据库
-                val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
-                val appDir = File(publicDir, "YuMoBox")
-                appDir.mkdirs() // 创建应用专用目录
-                
-                val dbPath = File(appDir, "yumo_box.db").absolutePath
-                
+                // 使用默认数据库路径，便于系统管理和备份
+                // 数据库文件将存储在应用的内部存储目录中
                 INSTANCE ?: Room.databaseBuilder(
 					context.applicationContext,
 					AppDatabase::class.java,
-					dbPath
+					"yumo_box.db"
                 )
                 .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .fallbackToDestructiveMigration() // 添加这行以防止迁移失败

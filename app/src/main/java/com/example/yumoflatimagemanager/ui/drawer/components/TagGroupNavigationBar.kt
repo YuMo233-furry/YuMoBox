@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
+import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -79,9 +80,8 @@ fun TagGroupNavigationBar(
     var isManagementExpanded by remember { mutableStateOf(false) }
     
     // 标签组拖拽排序状态
-    var isDragMode by remember { mutableStateOf(false) }
     var draggedItemIndex by remember { mutableStateOf<Int?>(null) }
-    var localTagGroups by remember { mutableStateOf<List<TagGroupEntity>>(emptyList()) }
+    var tagGroupsState by remember { mutableStateOf(tagGroups) }
     
     // 协程作用域
     val coroutineScope = rememberCoroutineScope()
@@ -92,11 +92,9 @@ fun TagGroupNavigationBar(
         animationSpec = tween(durationMillis = 300)
     )
     
-    // 同步本地标签组列表
-    LaunchedEffect(tagGroups, isManagementExpanded) {
-        if (isManagementExpanded) {
-            localTagGroups = tagGroups
-        }
+    // 监听标签组变化，更新tagGroupsState
+    LaunchedEffect(tagGroups) {
+        tagGroupsState = tagGroups
     }
     
     Box(modifier = modifier) {
@@ -226,41 +224,18 @@ fun TagGroupNavigationBar(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     
-                    // 拖拽模式控制
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                        content = {
-                            Text(
-                                text = if (isDragMode) "拖拽排序模式" else "点击进入拖拽模式",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.secondary
-                            )
-                            Button(
-                                onClick = { isDragMode = !isDragMode },
-                                modifier = Modifier.height(32.dp),
-                                contentPadding = PaddingValues(horizontal = 16.dp)
-                            ) {
-                                Text(text = if (isDragMode) "退出排序" else "进入排序")
-                            }
-                        }
-                    )
-                    
-                    Spacer(modifier = Modifier.height(8.dp))
-                    
-                    // 平铺显示所有标签组，上下滚动，支持拖拽排序
-                    LazyColumn(
+                    // 平铺显示所有标签组，每行3个标签，支持拖拽排序
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.height(250.dp)
+                        modifier = Modifier.height(300.dp)
                     ) {
-                        itemsIndexed(localTagGroups, key = { index, item -> item.id }) { index, tagGroup ->
+                        itemsIndexed(tagGroupsState) { index, tagGroup ->
                             val isDragging = draggedItemIndex == index
                             
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
+                            Box(
                                 modifier = Modifier
-                                    .fillMaxWidth()
                                     .background(if (isDragging) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
                                     .border(
                                         width = if (isDragging) 2.dp else 0.dp,
@@ -268,34 +243,34 @@ fun TagGroupNavigationBar(
                                     )
                                     .padding(8.dp)
                                     .zIndex(if (isDragging) 1f else 0f)
-                                    .pointerInput(isDragMode) {
-                                        if (isDragMode && !tagGroup.isDefault) {
-                                            detectDragGesturesAfterLongPress(
-                                                onDragStart = { draggedItemIndex = index },
-                                                onDrag = { change, offset ->
-                                                    change.consume()
-                                                    // 这里可以添加拖拽动画效果
-                                                },
-                                                onDragEnd = {
-                                                    // 拖拽结束，更新排序
-                                                    draggedItemIndex = null
-                                                    // 这里可以添加排序更新逻辑
+                                    .pointerInput(tagGroup) {
+                                        // 长按1.5秒后直接拖动排序
+                                        detectDragGesturesAfterLongPress(
+                                            onDragStart = { draggedItemIndex = index },
+                                            onDrag = { change, offset ->
+                                                change.consume()
+                                                // 拖拽过程中更新位置
+                                                if (draggedItemIndex != null) {
+                                                    val newIndex = (draggedItemIndex!! + (offset.y / 100).toInt()).coerceIn(0, tagGroupsState.size - 1)
+                                                    if (newIndex != draggedItemIndex) {
+                                                        // 更新标签组顺序
+                                                        val reorderedGroups = tagGroupsState.toMutableList()
+                                                        val movedGroup = reorderedGroups.removeAt(draggedItemIndex!!)
+                                                        reorderedGroups.add(newIndex, movedGroup)
+                                                        
+                                                        // 更新本地状态，立即反映拖拽效果
+                                                        tagGroupsState = reorderedGroups
+                                                    }
                                                 }
-                                            )
-                                        }
+                                            },
+                                            onDragEnd = {
+                                                // 拖拽结束，更新数据库中的排序
+                                                tagViewModel.reorderTagGroups(tagGroupsState)
+                                                draggedItemIndex = null
+                                            }
+                                        )
                                     }
                             ) {
-                                // 拖拽指示器
-                                if (isDragMode && !tagGroup.isDefault) {
-                                    Icon(
-                                        imageVector = Icons.Default.DragIndicator,
-                                        contentDescription = "拖拽排序",
-                                        tint = MaterialTheme.colorScheme.secondary,
-                                        modifier = Modifier.padding(end = 8.dp)
-                                    )
-                                }
-                                
-                                // 标签组项，占据剩余空间
                                 TagGroupItem(
                                     tagGroup = tagGroup,
                                     isSelected = tagGroup.id == selectedTagGroupId,
@@ -470,9 +445,6 @@ fun TagGroupNavigationBar(
                                     // 更新标签组中的标签关联
                                     coroutineScope.launch {
                                         try {
-                                            // 更新标签组名称
-                                            tagViewModel.renameTagGroup(it, renameGroupName)
-                                            
                                             // 获取当前标签组中的所有标签
                                             val currentTagsInGroup = tagViewModel.getTagsByTagGroupId(tagGroupId)
                                             val currentTagIds = currentTagsInGroup.map { it.id }.toSet()
