@@ -23,9 +23,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.yumoflatimagemanager.MainViewModel
+import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagGroupEntity
 import com.example.yumoflatimagemanager.feature.tag.TagViewModelNew
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * 标签组导航栏组件
@@ -56,8 +61,21 @@ fun TagGroupNavigationBar(
     var showCreateDialog by remember { mutableStateOf(false) }
     var newGroupName by remember { mutableStateOf("") }
     
+    // 标签组编辑对话框状态
+    var showRenameDialog by remember { mutableStateOf(false) }
+    var selectedTagGroup by remember { mutableStateOf<TagGroupEntity?>(null) }
+    var renameGroupName by remember { mutableStateOf("") }
+    
+    // 标签选择相关状态
+    var allTags by remember { mutableStateOf<List<TagEntity>>(emptyList()) }
+    var selectedTags by remember { mutableStateOf<Set<Long>>(emptySet()) }
+    var tagSearchQuery by remember { mutableStateOf("") }
+    
     // 标签组管理展开状态
     var isManagementExpanded by remember { mutableStateOf(false) }
+    
+    // 协程作用域
+    val coroutineScope = rememberCoroutineScope()
     
     // 展开管理按钮旋转动画
     val expandButtonRotation by animateFloatAsState(
@@ -67,13 +85,13 @@ fun TagGroupNavigationBar(
     
     Column(modifier = modifier) {
         // 标签组导航栏主内容
-        Box(modifier = Modifier.fillMaxWidth()) {
-            // 横向滚动的标签组列表
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            // 横向滚动的标签组列表 - 占据大部分宽度
             LazyRow(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.weight(1f),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                contentPadding = PaddingValues(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
             ) {
                 items(tagGroups, key = { it.id }) {
                     TagGroupItem(
@@ -82,8 +100,35 @@ fun TagGroupNavigationBar(
                         onClick = {
                             val currentTime = System.currentTimeMillis()
                             if (currentTime - lastClickTime < DOUBLE_CLICK_DELAY) {
-                                // 双击：打开标签组配置页面
-                                // 暂时不实现，留待后续开发
+                                // 双击：打开标签组编辑对话框
+                                selectedTagGroup = it
+                                renameGroupName = it.name
+                                
+                                // 加载所有标签和当前标签组中的标签
+                                coroutineScope.launch {
+                                    try {
+                                        // 加载所有标签
+                                        val tagsWithChildren = viewModel.tagsFlow.first()
+                                        val tagEntities = mutableListOf<TagEntity>()
+                                        
+                                        // 收集所有本体标签
+                                        tagsWithChildren.forEach { tagWithChild ->
+                                            tagEntities.add(tagWithChild.tag)
+                                        }
+                                        
+                                        // 去重并排序
+                                        allTags = tagEntities.distinctBy { it.id }.sortedBy { it.name }
+                                        
+                                        // 加载当前标签组中的标签
+                                        val tagsInGroup = tagViewModel.getTagsByTagGroupId(it.id)
+                                        selectedTags = tagsInGroup.map { it.id }.toSet()
+                                    } catch (e: Exception) {
+                                        // 处理异常
+                                        allTags = emptyList()
+                                        selectedTags = emptySet()
+                                    }
+                                }
+                                showRenameDialog = true
                             } else {
                                 // 单击：切换标签组
                                 // 实现未选中功能：重复点击已选中标签组进入未选择状态
@@ -95,11 +140,9 @@ fun TagGroupNavigationBar(
                 }
             }
             
-            // 右侧固定按钮组
+            // 右侧固定按钮组 - 固定宽度，不影响LazyRow
             Row(
-                modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .padding(horizontal = 16.dp),
+                modifier = Modifier.padding(end = 16.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
@@ -149,12 +192,34 @@ fun TagGroupNavigationBar(
                     .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     .padding(16.dp)
             ) {
-                Text(
-                    text = "标签组管理",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                // 后续实现管理页面内容
+                Column {
+                    // 标题
+                    Text(
+                        text = "标签组管理",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    
+                    // 平铺显示所有标签组
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        contentPadding = PaddingValues(vertical = 8.dp)
+                    ) {
+                        items(tagGroups, key = { it.id }) {
+                            TagGroupItem(
+                                tagGroup = it,
+                                isSelected = it.id == selectedTagGroupId,
+                                onClick = {
+                                    // 单击：切换标签组并关闭管理视图
+                                    tagViewModel.selectTagGroup(it.id)
+                                    isManagementExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
         }
         
@@ -188,6 +253,145 @@ fun TagGroupNavigationBar(
                 },
                 dismissButton = {
                     TextButton(onClick = { showCreateDialog = false }) {
+                        Text(text = "取消")
+                    }
+                }
+            )
+        }
+        
+        // 标签组编辑对话框
+        if (showRenameDialog && selectedTagGroup != null) {
+            AlertDialog(
+                onDismissRequest = { showRenameDialog = false },
+                title = { Text(text = "编辑标签组") },
+                text = {
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        // 标签组名称输入
+                        OutlinedTextField(
+                            value = renameGroupName,
+                            onValueChange = { renameGroupName = it },
+                            label = { Text(text = "标签组名称") },
+                            placeholder = { Text(text = "输入标签组新名称") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        
+                        Spacer(modifier = Modifier.height(16.dp))
+                        
+                        // 标签选择标题
+                        Text(
+                            text = "标签选择",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Medium,
+                            modifier = Modifier.padding(bottom = 8.dp)
+                        )
+                        
+                        // 标签搜索框
+                        OutlinedTextField(
+                            value = tagSearchQuery,
+                            onValueChange = { tagSearchQuery = it },
+                            label = { Text(text = "搜索标签") },
+                            placeholder = { Text(text = "输入标签名称") },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                        
+                        // 标签选择列表
+                        Box(modifier = Modifier.height(200.dp)) {
+                            LazyColumn {
+                                items(allTags) { tag ->
+                                    // 过滤标签
+                                    if (tagSearchQuery.isBlank() || tag.name.contains(tagSearchQuery, ignoreCase = true)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    // 切换标签选择状态
+                                                    selectedTags = if (selectedTags.contains(tag.id)) {
+                                                        selectedTags - tag.id
+                                                    } else {
+                                                        selectedTags + tag.id
+                                                    }
+                                                }
+                                                .padding(vertical = 8.dp)
+                                        ) {
+                                            Checkbox(
+                                                checked = selectedTags.contains(tag.id),
+                                                onCheckedChange = {
+                                                    selectedTags = if (it) {
+                                                        selectedTags + tag.id
+                                                    } else {
+                                                        selectedTags - tag.id
+                                                    }
+                                                }
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Text(text = tag.name)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            if (renameGroupName.isNotBlank()) {
+                                selectedTagGroup?.let {
+                                    val tagGroupId = it.id
+                                    
+                                    // 重命名标签组
+                                    tagViewModel.renameTagGroup(it, renameGroupName)
+                                    
+                                    // 更新标签组中的标签关联
+                                    coroutineScope.launch {
+                                        try {
+                                            // 获取当前标签组中的所有标签
+                                            val currentTagsInGroup = tagViewModel.getTagsByTagGroupId(tagGroupId)
+                                            val currentTagIds = currentTagsInGroup.map { it.id }.toSet()
+                                            
+                                            // 需要添加的标签
+                                            val tagsToAdd = selectedTags - currentTagIds
+                                            // 需要移除的标签
+                                            val tagsToRemove = currentTagIds - selectedTags
+                                            
+                                            // 添加标签到标签组
+                                            tagsToAdd.forEach { tagId ->
+                                                tagViewModel.addTagToTagGroup(tagId, tagGroupId)
+                                            }
+                                            
+                                            // 从标签组移除标签
+                                            tagsToRemove.forEach { tagId ->
+                                                tagViewModel.removeTagFromTagGroup(tagId, tagGroupId)
+                                            }
+                                        } catch (e: Exception) {
+                                            // 处理异常
+                                        }
+                                    }
+                                }
+                                
+                                // 重置状态
+                                renameGroupName = ""
+                                selectedTags = emptySet()
+                                tagSearchQuery = ""
+                                showRenameDialog = false
+                            }
+                        },
+                        enabled = renameGroupName.isNotBlank()
+                    ) {
+                        Text(text = "确定")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        // 重置状态
+                        renameGroupName = ""
+                        selectedTags = emptySet()
+                        tagSearchQuery = ""
+                        showRenameDialog = false
+                    }) {
                         Text(text = "取消")
                     }
                 }
