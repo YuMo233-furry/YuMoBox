@@ -138,7 +138,39 @@ class TagRepositoryImpl(private val dao: TagDao) : TagRepository {
 
 	// 递归获取所有子孙标签id（包括引用的标签）
 	override suspend fun getDescendantTagIds(tagId: Long): List<Long> {
-		return dao.getAllDescendantTagIds(tagId)
+		val result = mutableSetOf<Long>()
+		val visited = mutableSetOf<Long>()
+		val queue = ArrayDeque<Long>()
+		
+		queue.add(tagId)
+		visited.add(tagId)
+		result.add(tagId)
+		
+		while (queue.isNotEmpty() && result.size < 1000) {
+			val current = queue.removeFirst()
+			
+			// 获取子标签（通过parentId）
+			val children = dao.getChildrenIds(current)
+			for (child in children) {
+				if (child !in visited) {
+					result.add(child)
+					visited.add(child)
+					queue.add(child)
+				}
+			}
+			
+			// 获取引用标签（通过tag_references）
+			val references = dao.getTagReferencesByParentId(current)
+			for (ref in references) {
+				if (ref.childTagId !in visited) {
+					result.add(ref.childTagId)
+					visited.add(ref.childTagId)
+					queue.add(ref.childTagId)
+				}
+			}
+		}
+		
+		return result.toList()
 	}
 	
 	// 获取所有被引用的标签ID（使用应用层循环检测）
@@ -368,12 +400,22 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
      */
     private fun getRootTagsWithChildren(): List<TagWithChildren> {
         val allTags = TagFileManager.getAllTags()
+        
+        // 创建标签ID到标签数据的映射，用于快速查找
+        val tagMap = allTags.associateBy { it.id }
+        
+        // 筛选根标签
         val rootTags = allTags.filter { it.parentId == null }
         
         // 将文件存储的TagData转换为数据库模型的TagWithChildren
         return rootTags.mapNotNull { tagData ->
             val tagEntity = tagData.toTagEntity()
-            val children = allTags.filter { it.parentId == tagData.id }.map { it.toTagEntity() }
+            
+            // 使用标签映射快速查找子标签
+            val children = allTags.filter { it.parentId == tagData.id }
+                .map { it.toTagEntity() }
+            
+            // 创建引用标签实体
             val referencedTags = tagData.referencedTags.map { ref ->
                 TagReferenceEntity(
                     parentTagId = tagData.id,
@@ -431,19 +473,32 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
             
             // 2. 遍历所有标签，更新引用关系
             for (tagData in allTags) {
+                var isModified = false
+                
                 // 2.1 删除该标签的所有引用关系（作为父标签）
+                val initialReferencedTagsSize = tagData.referencedTags.size
                 tagData.referencedTags.removeIf { it.childTagId == id }
+                if (tagData.referencedTags.size != initialReferencedTagsSize) {
+                    isModified = true
+                }
                 
                 // 2.2 删除该标签的所有被引用关系（作为引用标签）
+                val initialParentReferencesSize = tagData.parentReferences.size
                 tagData.parentReferences.removeIf { it.parentTagId == id }
+                if (tagData.parentReferences.size != initialParentReferencesSize) {
+                    isModified = true
+                }
                 
                 // 2.3 处理子标签：将子标签的父级设为null
                 if (tagData.parentId == id) {
                     tagData.parentId = null
+                    isModified = true
                 }
                 
-                // 2.4 更新标签
-                TagFileManager.writeTag(tagData)
+                // 2.4 只有在标签数据发生变化时才更新文件
+                if (isModified) {
+                    TagFileManager.writeTag(tagData)
+                }
             }
             
             // 3. 最后删除标签本身
@@ -668,6 +723,11 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
             return@withContext true // 已存在，返回成功
         }
         
+        // 检查是否存在循环引用
+        if (isCyclicReference(parentTagId, childTagId)) {
+            return@withContext false // 存在循环引用，拒绝添加
+        }
+        
         // 添加引用关系到父标签
         parentTagData.referencedTags.add(TagData.ReferencedTag(childTagId, parentTagData.referencedTags.size * 1000))
         
@@ -679,6 +739,57 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
         TagFileManager.writeTag(childTagData)
         
         return@withContext true
+    }
+    
+    /**
+     * 检测是否存在循环引用
+     * @param parentTagId 父标签ID
+     * @param childTagId 子标签ID（被引用标签）
+     * @return 如果存在循环引用则返回true，否则返回false
+     */
+    private suspend fun isCyclicReference(parentTagId: Long, childTagId: Long): Boolean = withContext(Dispatchers.IO) {
+        // 1. 自循环检测：父标签不能引用自身
+        if (parentTagId == childTagId) {
+            return@withContext true
+        }
+        
+        // 2. 祖先-子孙循环检测：检查子标签是否是父标签的祖先
+        val allTags = TagFileManager.getAllTags()
+        val visited = mutableSetOf<Long>()
+        val queue = ArrayDeque<Long>()
+        
+        queue.add(childTagId)
+        visited.add(childTagId)
+        
+        while (queue.isNotEmpty()) {
+            val current = queue.removeFirst()
+            
+            // 检查当前标签是否是父标签
+            if (current == parentTagId) {
+                return@withContext true // 检测到循环引用
+            }
+            
+            // 获取当前标签的所有父引用
+            val tagData = allTags.find { it.id == current }
+            
+            // 检查直接父标签（通过parentId）
+            val parentId = tagData?.parentId
+            if (parentId != null && parentId !in visited) {
+                visited.add(parentId)
+                queue.add(parentId)
+            }
+            
+            // 检查引用父标签（通过parentReferences）
+            val parentReferences = tagData?.parentReferences?.map { it.parentTagId } ?: emptyList()
+            for (refParentId in parentReferences) {
+                if (refParentId !in visited) {
+                    visited.add(refParentId)
+                    queue.add(refParentId)
+                }
+            }
+        }
+        
+        return@withContext false // 未检测到循环引用
     }
     
     // 移除标签引用

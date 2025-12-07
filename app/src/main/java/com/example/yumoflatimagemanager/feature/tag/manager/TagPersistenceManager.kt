@@ -23,7 +23,7 @@ class TagPersistenceManager(
     /**
      * 保存所有标签状态
      */
-    private fun saveAllTagStates() {
+    fun saveAllTagStates() {
         val tagConfig = ConfigManager.readTagConfig()
         tagConfig.activeTagFilterIds = tagState.activeTagFilterIds
         tagConfig.excludedTagIds = tagState.excludedTagIds
@@ -37,28 +37,36 @@ class TagPersistenceManager(
      * 保存激活的标签过滤
      */
     fun saveActiveTagFilters() {
-        saveAllTagStates()
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.activeTagFilterIds = tagState.activeTagFilterIds
+        ConfigManager.writeTagConfig(tagConfig)
     }
     
     /**
      * 保存排除的标签
      */
     fun saveExcludedTags() {
-        saveAllTagStates()
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.excludedTagIds = tagState.excludedTagIds
+        ConfigManager.writeTagConfig(tagConfig)
     }
     
     /**
      * 保存展开的标签
      */
     fun saveExpandedTags() {
-        saveAllTagStates()
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.expandedTagIds = tagState.expandedTagIds
+        ConfigManager.writeTagConfig(tagConfig)
     }
     
     /**
      * 保存展开的引用标签
      */
     fun saveExpandedReferencedTags() {
-        saveAllTagStates()
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.expandedReferencedTagIds = tagState.expandedReferencedTagIds
+        ConfigManager.writeTagConfig(tagConfig)
     }
     
     /**
@@ -66,7 +74,9 @@ class TagPersistenceManager(
      */
     fun saveTagDrawerScrollPosition(index: Int) {
         tagState.updateTagDrawerScrollIndex(index)
-        saveAllTagStates()
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.tagDrawerScrollIndex = index
+        ConfigManager.writeTagConfig(tagConfig)
     }
     
     // ==================== 恢复状态 ====================

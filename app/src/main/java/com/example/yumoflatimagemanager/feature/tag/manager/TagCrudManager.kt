@@ -28,18 +28,61 @@ class TagCrudManager(
     private val scope: CoroutineScope
 ) {
     private var undoDeleteJob: Job? = null
+    private val debounceHelper = DebounceHelper(scope)
     
     // ==================== 标签 CRUD ====================
+    
+    /**
+     * 验证标签名称是否合法
+     * @param name 标签名称
+     * @return 合法返回null，否则返回错误信息
+     */
+    private fun validateTagName(name: String): String? {
+        if (name.isBlank()) {
+            return "标签名称不能为空"
+        }
+        
+        // 检查是否包含非法字符
+        val illegalChars = "<>:\"/\\|?*"
+        for (char in illegalChars) {
+            if (name.contains(char)) {
+                return "标签名称不能包含特殊字符：$illegalChars"
+            }
+        }
+        
+        // 检查长度限制
+        if (name.length > 50) {
+            return "标签名称不能超过50个字符"
+        }
+        
+        return null
+    }
     
     /**
      * 添加新标签
      */
     fun addTag(name: String) {
-        if (name.isBlank()) return
-        scope.launch(Dispatchers.IO) {
+        val trimmedName = name.trim()
+        if (trimmedName.isBlank()) return
+        
+        // 验证标签名称
+        val validationError = validateTagName(trimmedName)
+        if (validationError != null) {
+            scope.launch(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    validationError,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            return
+        }
+        
+        // 使用防抖，防止频繁创建标签
+        debounceHelper.debounce("add_tag_${trimmedName}", 500) {
             try {
-                val tagId = tagRepo.createTag(name.trim(), parentId = null)
-                println("DEBUG: 成功创建标签: $name, ID: $tagId")
+                val tagId = tagRepo.createTag(trimmedName, parentId = null)
+                println("DEBUG: 成功创建标签: $trimmedName, ID: $tagId")
             } catch (e: Exception) {
                 println("ERROR: 创建标签失败: ${e.message}")
                 e.printStackTrace()
@@ -58,10 +101,28 @@ class TagCrudManager(
      * 重命名标签
      */
     fun renameTag(tag: TagEntity, newName: String) {
-        scope.launch(Dispatchers.IO) {
+        val trimmedNewName = newName.trim()
+        if (trimmedNewName.isBlank()) return
+        
+        // 验证标签名称
+        val validationError = validateTagName(trimmedNewName)
+        if (validationError != null) {
+            scope.launch(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    validationError,
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+            return
+        }
+        
+        // 使用防抖，防止频繁重命名标签
+        debounceHelper.debounce("rename_tag_${tag.id}_${trimmedNewName}", 500) {
             try {
-                tagRepo.renameTag(tag.id, newName, tag.parentId)
+                tagRepo.renameTag(tag.id, trimmedNewName, tag.parentId)
             } catch (e: Exception) {
+                println("ERROR: 重命名标签失败: ${e.message}")
                 e.printStackTrace()
                 withContext(Dispatchers.Main) {
                     Toast.makeText(
@@ -78,7 +139,8 @@ class TagCrudManager(
      * 删除标签
      */
     fun deleteTag(tag: TagEntity, onStatisticsUpdate: (Long) -> Unit) {
-        scope.launch(Dispatchers.IO) {
+        // 使用防抖，防止频繁删除标签
+        debounceHelper.debounce("delete_tag_${tag.id}", 500) {
             try {
                 // 从激活的标签过滤中移除该标签
                 if (tagState.activeTagFilterIds.contains(tag.id)) {
