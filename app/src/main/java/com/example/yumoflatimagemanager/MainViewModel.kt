@@ -1207,7 +1207,14 @@ class MainViewModel(private val context: Context) : ViewModel() {
 
     // 为 UI 加载任意标签的 TagWithChildren（含直接引用标签与直接引用）
     suspend fun getTagWithChildrenForUi(tagId: Long): com.example.yumoflatimagemanager.data.local.TagWithChildren? {
-        return db.tagDao().getTagWithChildren(tagId)
+        // 使用 tagRepo 获取标签数据，支持数据库和文件系统
+        val tag = tagRepo.getTagById(tagId) ?: return null
+        val children = tagRepo.getTagsByParentId(tagId)
+        val tagReferences = tagRepo.getTagReferences(tagId)
+        val tagReferenceEntities = tagReferences.map { ref -> 
+            com.example.yumoflatimagemanager.data.local.TagReferenceEntity(parentTagId = tagId, childTagId = ref.tag.id, sortOrder = ref.referenceSortOrder)
+        }
+        return com.example.yumoflatimagemanager.data.local.TagWithChildren(tag, children, tagReferenceEntities)
     }
     
     // 显示标签选择对话框
