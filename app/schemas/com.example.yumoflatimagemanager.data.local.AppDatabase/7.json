@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 7,
-    "identityHash": "cd50b36a1311eddbd3d804f99b307696",
+    "identityHash": "310229927cc95e244abc1e3628379cea",
     "entities": [
       {
         "tableName": "tags",
@@ -186,7 +186,7 @@
       },
       {
         "tableName": "tag_group_tag_cross_ref",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tagGroupId` INTEGER NOT NULL, `tagId` INTEGER NOT NULL, PRIMARY KEY(`tagGroupId`, `tagId`), FOREIGN KEY(`tagGroupId`) REFERENCES `tag_groups`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`tagId`) REFERENCES `tags`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`tagGroupId` INTEGER NOT NULL, `tagId` INTEGER NOT NULL, PRIMARY KEY(`tagGroupId`, `tagId`))",
         "fields": [
           {
             "fieldPath": "tagGroupId",
@@ -228,30 +228,7 @@
             "createSql": "CREATE INDEX IF NOT EXISTS `index_tag_group_tag_cross_ref_tagId` ON `${TABLE_NAME}` (`tagId`)"
           }
         ],
-        "foreignKeys": [
-          {
-            "table": "tag_groups",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "tagGroupId"
-            ],
-            "referencedColumns": [
-              "id"
-            ]
-          },
-          {
-            "table": "tags",
-            "onDelete": "CASCADE",
-            "onUpdate": "NO ACTION",
-            "columns": [
-              "tagId"
-            ],
-            "referencedColumns": [
-              "id"
-            ]
-          }
-        ]
+        "foreignKeys": []
       },
       {
         "tableName": "watermark_presets",
@@ -367,7 +344,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'cd50b36a1311eddbd3d804f99b307696')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '310229927cc95e244abc1e3628379cea')"
     ]
   }
 }

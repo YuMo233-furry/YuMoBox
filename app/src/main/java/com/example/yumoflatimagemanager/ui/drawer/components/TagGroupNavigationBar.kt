@@ -142,9 +142,12 @@ fun TagGroupNavigationBar(
                                             
                                             // 加载当前标签组中的标签
                                             val tagsInGroup = tagViewModel.getTagsByTagGroupId(it.id)
-                                            selectedTags = tagsInGroup.map { it.id }.toSet()
+                                            val tagIdsInGroup = tagsInGroup.map { it.id }.toSet()
+                                            selectedTags = tagIdsInGroup
+                                            println("DEBUG: 加载标签组 ${it.id} 中的标签: $tagIdsInGroup")
                                         } catch (e: Exception) {
                                             // 处理异常
+                                            println("ERROR: 加载标签组标签失败 - 标签组ID: ${it.id}, 错误: ${e.message}")
                                             allTags = emptyList()
                                             selectedTags = emptySet()
                                         }
@@ -302,9 +305,12 @@ fun TagGroupNavigationBar(
                                                     
                                                     // 加载当前标签组中的标签
                                                     val tagsInGroup = tagViewModel.getTagsByTagGroupId(tagGroup.id)
-                                                    selectedTags = tagsInGroup.map { it.id }.toSet()
+                                                    val tagIdsInGroup = tagsInGroup.map { it.id }.toSet()
+                                                    selectedTags = tagIdsInGroup
+                                                    println("DEBUG: 加载标签组 ${tagGroup.id} 中的标签: $tagIdsInGroup")
                                                 } catch (e: Exception) {
                                                     // 处理异常
+                                                    println("ERROR: 加载标签组标签失败 - 标签组ID: ${tagGroup.id}, 错误: ${e.message}")
                                                     allTags = emptyList()
                                                     selectedTags = emptySet()
                                                 }
@@ -439,12 +445,11 @@ fun TagGroupNavigationBar(
                                 selectedTagGroup?.let {
                                     val tagGroupId = it.id
                                     
-                                    // 重命名标签组
-                                    tagViewModel.renameTagGroup(it, renameGroupName)
-                                    
-                                    // 更新标签组中的标签关联
                                     coroutineScope.launch {
                                         try {
+                                            // 重命名标签组
+                                            tagViewModel.renameTagGroup(it, renameGroupName)
+                                            
                                             // 获取当前标签组中的所有标签
                                             val currentTagsInGroup = tagViewModel.getTagsByTagGroupId(tagGroupId)
                                             val currentTagIds = currentTagsInGroup.map { it.id }.toSet()
@@ -463,17 +468,27 @@ fun TagGroupNavigationBar(
                                             tagsToRemove.forEach { tagId ->
                                                 tagViewModel.removeTagFromTagGroup(tagId, tagGroupId)
                                             }
+                                            
+                                            // 重置状态
+                                            withContext(Dispatchers.Main) {
+                                                renameGroupName = ""
+                                                selectedTags = emptySet()
+                                                tagSearchQuery = ""
+                                                showRenameDialog = false
+                                            }
                                         } catch (e: Exception) {
                                             // 处理异常
+                                            withContext(Dispatchers.Main) {
+                                                // 显示错误提示
+                                                androidx.compose.material3.SnackbarHostState().showSnackbar(
+                                                    message = "保存标签组失败: ${e.message}",
+                                                    actionLabel = "关闭"
+                                                )
+                                            }
+                                            e.printStackTrace()
                                         }
                                     }
                                 }
-                                
-                                // 重置状态
-                                renameGroupName = ""
-                                selectedTags = emptySet()
-                                tagSearchQuery = ""
-                                showRenameDialog = false
                             }
                         },
                         enabled = renameGroupName.isNotBlank()

@@ -438,11 +438,17 @@ class MainViewModel(private val context: Context) : ViewModel() {
      * @param allTags 所有标签列表
      * @return 该标签组下的标签列表
      */
-    fun getTagsByTagGroupId(tagGroupId: Long, allTags: List<com.example.yumoflatimagemanager.data.local.TagWithChildren>): List<com.example.yumoflatimagemanager.data.local.TagWithChildren> {
-        // 此处应该调用数据库查询，获取指定标签组下的标签ID列表
-        // 由于当前未实现完整的标签组与标签关联查询，先返回所有标签
-        // 后续会替换为真实的数据库查询逻辑
-        return allTags
+    suspend fun getTagsByTagGroupId(tagGroupId: Long, allTags: List<com.example.yumoflatimagemanager.data.local.TagWithChildren>): List<com.example.yumoflatimagemanager.data.local.TagWithChildren> {
+        // 调用数据库查询，获取指定标签组下的标签ID列表
+        return try {
+            // 从数据库获取该标签组下的所有标签ID
+            val tagIdsInGroup = tagViewModel.getTagsByTagGroupId(tagGroupId).map { it.id }.toSet()
+            // 从所有标签中过滤出该标签组下的标签
+            allTags.filter { tagIdsInGroup.contains(it.tag.id) }
+        } catch (e: Exception) {
+            Log.e("MainViewModel", "获取标签组下的标签失败: $tagGroupId", e)
+            allTags // 发生错误时返回所有标签
+        }
     }
 
     // 过滤：切换标签

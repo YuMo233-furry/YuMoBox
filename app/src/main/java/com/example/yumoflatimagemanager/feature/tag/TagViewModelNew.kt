@@ -431,24 +431,53 @@ class TagViewModelNew(
     
     // 标签组与标签关联管理
     fun addTagToTagGroup(tagId: Long, tagGroupId: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
-                val crossRef = TagGroupTagCrossRef(tagGroupId = tagGroupId, tagId = tagId)
-                db.tagDao().insertTagGroupTagCrossRef(crossRef)
+                // 检查标签组是否存在
+                val tagGroup = withContext(Dispatchers.IO) { db.tagDao().getTagGroupById(tagGroupId) }
+                
+                println("DEBUG: 尝试添加标签到标签组 - 标签ID: $tagId, 标签组ID: $tagGroupId")
+                
+                // 查看所有标签组
+                val allTagGroups = withContext(Dispatchers.IO) { db.tagDao().getAllTagGroupsList() }
+                println("DEBUG: 所有标签组: $allTagGroups")
+                
+                if (tagGroup == null) {
+                    throw IllegalArgumentException("标签组 $tagGroupId 不存在")
+                }
+                
+                // 在IO线程执行数据库操作
+                withContext(Dispatchers.IO) {
+                    val crossRef = TagGroupTagCrossRef(tagGroupId = tagGroupId, tagId = tagId)
+                    db.tagDao().insertTagGroupTagCrossRef(crossRef)
+                    println("DEBUG: 成功将标签 $tagId 添加到标签组 $tagGroupId")
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "添加标签到标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                println("ERROR: 添加标签到标签组失败 - 标签ID: $tagId, 标签组ID: $tagGroupId, 错误: ${e.message}")
+                // 在主线程显示Toast
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "添加标签到标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
     
     fun removeTagFromTagGroup(tagId: Long, tagGroupId: Long) {
-        viewModelScope.launch(Dispatchers.IO) {
+        viewModelScope.launch {
             try {
-                db.tagDao().deleteTagFromTagGroup(tagGroupId, tagId)
+                // 在IO线程执行数据库操作
+                withContext(Dispatchers.IO) {
+                    db.tagDao().deleteTagFromTagGroup(tagGroupId, tagId)
+                    println("DEBUG: 成功从标签组 $tagGroupId 移除标签 $tagId")
+                }
             } catch (e: Exception) {
                 e.printStackTrace()
-                Toast.makeText(context, "从标签组移除标签失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                println("ERROR: 从标签组移除标签失败 - 标签ID: $tagId, 标签组ID: $tagGroupId, 错误: ${e.message}")
+                // 在主线程显示Toast
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "从标签组移除标签失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
@@ -482,9 +511,12 @@ class TagViewModelNew(
     // 获取标签组下的标签
     suspend fun getTagsByTagGroupId(tagGroupId: Long): List<TagEntity> {
         return try {
-            db.tagDao().getTagsByTagGroupId(tagGroupId)
+            val tags = db.tagDao().getTagsByTagGroupId(tagGroupId)
+            println("DEBUG: 获取标签组 $tagGroupId 下的标签: ${tags.map { it.id }}")
+            tags
         } catch (e: Exception) {
             e.printStackTrace()
+            println("ERROR: 获取标签组下的标签失败 - 标签组ID: $tagGroupId, 错误: ${e.message}")
             emptyList()
         }
     }

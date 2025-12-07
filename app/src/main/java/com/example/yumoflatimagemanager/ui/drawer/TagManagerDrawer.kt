@@ -236,25 +236,34 @@ private fun TagManagerContent(
             derivedStateOf { viewModel.tagViewModel.selectedTagGroupId }
         }
         
-        // 搜索和标签组结合的过滤逻辑
-        val filteredTags = remember(tags, searchQuery, selectedTagGroupId) {
-            // 先根据标签组过滤
-            var result = if (selectedTagGroupId == null) {
+        // 标签组过滤后的标签
+        var tagGroupFilteredTags by remember { mutableStateOf(tags) }
+        
+        // 监听标签组变化，更新过滤后的标签
+        LaunchedEffect(tags, selectedTagGroupId) {
+            tagGroupFilteredTags = if (selectedTagGroupId == null) {
                 // 未选择任何标签组，显示所有标签
                 tags
             } else {
                 // 选择了特定标签组，只显示该组下的标签
                 viewModel.getTagsByTagGroupId(selectedTagGroupId!!, tags)
             }
-            
-            // 再根据搜索关键词过滤
-            if (searchQuery.isNotBlank()) {
-                result = result.filter { tagWithChildren ->
-                    tagWithChildren.tag.name.contains(searchQuery, ignoreCase = true)
+        }
+        
+        // 搜索和标签组结合的过滤逻辑
+        val filteredTags by remember(tagGroupFilteredTags, searchQuery) {
+            derivedStateOf {
+                var result = tagGroupFilteredTags
+                
+                // 根据搜索关键词过滤
+                if (searchQuery.isNotBlank()) {
+                    result = result.filter { tagWithChildren ->
+                        tagWithChildren.tag.name.contains(searchQuery, ignoreCase = true)
+                    }
                 }
+                
+                result
             }
-            
-            result
         }
         
     Column(

@@ -31,20 +31,6 @@ data class TagGroupEntity(
     indices = [
         Index(value = ["tagGroupId"]),
         Index(value = ["tagId"])
-    ],
-    foreignKeys = [
-        ForeignKey(
-            entity = TagGroupEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["tagGroupId"],
-            onDelete = ForeignKey.CASCADE
-        ),
-        ForeignKey(
-            entity = TagEntity::class,
-            parentColumns = ["id"],
-            childColumns = ["tagId"],
-            onDelete = ForeignKey.CASCADE
-        )
     ]
 )
 data class TagGroupTagCrossRef(
