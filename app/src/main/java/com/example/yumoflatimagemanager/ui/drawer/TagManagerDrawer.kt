@@ -59,7 +59,7 @@ import com.example.yumoflatimagemanager.ui.drawer.components.DraggableChildTagIt
 import com.example.yumoflatimagemanager.ui.drawer.components.DraggableTagItem
 import com.example.yumoflatimagemanager.ui.drawer.components.AddTagReferenceDialog
 import com.example.yumoflatimagemanager.ui.drawer.components.TagManagerHeader
-import com.example.yumoflatimagemanager.ui.drawer.components.TagSearchBar
+import com.example.yumoflatimagemanager.ui.drawer.components.TagGroupNavigationBar
 import com.example.yumoflatimagemanager.ui.drawer.components.UntaggedTagItem
 import com.example.yumoflatimagemanager.ui.drawer.components.CreateTagButton
 import com.example.yumoflatimagemanager.ui.drawer.components.TagDialogsContainer
@@ -231,7 +231,7 @@ private fun TagManagerContent(
         viewModel.updateTagStatisticsBatchIfNeeded(tagIds)
     }
         
-        // 过滤标签 - 使用数据库中的tags而不是localTags
+        // 搜索过滤逻辑 - 简化版，暂时只支持关键词搜索，不包含标签组过滤
         val filteredTags = remember(tags, searchQuery) {
             if (searchQuery.isBlank()) {
                 tags
@@ -257,43 +257,40 @@ private fun TagManagerContent(
                 )
             }
     ) {
-        // 标题栏
+        // 标题栏，集成搜索功能
         TagManagerHeader(
             isDragMode = isDragMode,
             onDragModeToggle = { newMode ->
                 isDragMode = newMode
                 viewModel.setDragMode(newMode)
             },
-            onResetClick = { showResetConfirmationDialog = true }
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        // 搜索框
-        TagSearchBar(
+            onResetClick = { showResetConfirmationDialog = true },
             searchQuery = searchQuery,
             onSearchQueryChange = { searchQuery = it }
         )
+        
+        // 标签组导航栏
+        TagGroupNavigationBar(viewModel = viewModel)
         
         Spacer(modifier = Modifier.height(16.dp))
         
         // 未分类标签（虚拟标签）
         UntaggedTagItem(
-                            viewModel = viewModel,
+            viewModel = viewModel,
             lastClickTime = lastClickTime,
             onClickTimeUpdate = { lastClickTime = it }
         )
         
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         
-        // 标签列表
+        // 标签列表 - 根据当前选中的标签组和搜索关键词过滤
         TagListContent(
-                viewModel = viewModel,
+            viewModel = viewModel,
             filteredTags = filteredTags,
             localTags = localTags,
             isDragMode = isDragMode,
             onLocalTagsChange = { localTags = it },
-                modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f)
         )
         
         Spacer(modifier = Modifier.height(16.dp))

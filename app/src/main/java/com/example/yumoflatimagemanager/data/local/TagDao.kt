@@ -11,6 +11,71 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface TagDao {
+	// 标签组相关操作
+	@Insert
+	suspend fun insertTagGroup(tagGroup: TagGroupEntity): Long
+
+	@Update
+	suspend fun updateTagGroup(tagGroup: TagGroupEntity)
+
+	@Delete
+	suspend fun deleteTagGroup(tagGroup: TagGroupEntity)
+
+	@Query("DELETE FROM tag_groups WHERE id = :tagGroupId AND isDefault = 0")
+	suspend fun deleteTagGroupById(tagGroupId: Long)
+
+	@Query("SELECT * FROM tag_groups ORDER BY sortOrder ASC")
+	fun getAllTagGroups(): Flow<List<TagGroupEntity>>
+
+	@Query("SELECT * FROM tag_groups ORDER BY sortOrder ASC")
+	suspend fun getAllTagGroupsList(): List<TagGroupEntity>
+
+	@Query("SELECT * FROM tag_groups WHERE id = :tagGroupId")
+	suspend fun getTagGroupById(tagGroupId: Long): TagGroupEntity?
+
+	@Query("SELECT * FROM tag_groups WHERE name = :name")
+	suspend fun getTagGroupByName(name: String): TagGroupEntity?
+
+	@Query("SELECT * FROM tag_groups WHERE isDefault = 1")
+	suspend fun getDefaultTagGroup(): TagGroupEntity?
+
+	@Query("SELECT MAX(sortOrder) FROM tag_groups")
+	suspend fun getMaxTagGroupSortOrder(): Int?
+
+	@Query("UPDATE tag_groups SET sortOrder = :sortOrder WHERE id = :tagGroupId")
+	suspend fun updateTagGroupSortOrder(tagGroupId: Long, sortOrder: Int)
+
+	// 标签组与标签关联操作
+	@Insert
+	suspend fun insertTagGroupTagCrossRef(crossRef: TagGroupTagCrossRef)
+
+	@Delete
+	suspend fun deleteTagGroupTagCrossRef(crossRef: TagGroupTagCrossRef)
+
+	@Query("DELETE FROM tag_group_tag_cross_ref WHERE tagGroupId = :tagGroupId AND tagId = :tagId")
+	suspend fun deleteTagFromTagGroup(tagGroupId: Long, tagId: Long)
+
+	@Query("DELETE FROM tag_group_tag_cross_ref WHERE tagGroupId = :tagGroupId")
+	suspend fun deleteAllTagsFromTagGroup(tagGroupId: Long)
+
+	@Query("DELETE FROM tag_group_tag_cross_ref WHERE tagId = :tagId")
+	suspend fun deleteTagFromAllTagGroups(tagId: Long)
+
+	@Query("SELECT t.* FROM tags t INNER JOIN tag_group_tag_cross_ref g ON t.id = g.tagId WHERE g.tagGroupId = :tagGroupId ORDER BY t.sortOrder, t.name")
+	suspend fun getTagsByTagGroupId(tagGroupId: Long): List<TagEntity>
+
+	@Query("SELECT g.* FROM tag_groups g INNER JOIN tag_group_tag_cross_ref tg ON g.id = tg.tagGroupId WHERE tg.tagId = :tagId ORDER BY g.sortOrder ASC")
+	suspend fun getTagGroupsByTagId(tagId: Long): List<TagGroupEntity>
+
+	@Transaction
+	@Query("SELECT * FROM tag_groups ORDER BY sortOrder ASC")
+	fun getAllTagGroupsWithTags(): Flow<List<TagGroupWithTags>>
+
+	@Transaction
+	@Query("SELECT * FROM tag_groups WHERE id = :tagGroupId")
+	suspend fun getTagGroupWithTags(tagGroupId: Long): TagGroupWithTags?
+
+	// 标签基本操作
 	@Query("SELECT * FROM tags ORDER BY sortOrder, name")
 	fun getAllTags(): Flow<List<TagEntity>>
 	

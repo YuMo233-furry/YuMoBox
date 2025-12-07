@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.text.font.FontWeight
 
 /**
@@ -23,17 +24,20 @@ import androidx.compose.ui.text.font.FontWeight
 fun TagManagerHeader(
     isDragMode: Boolean,
     onDragModeToggle: (Boolean) -> Unit,
-    onResetClick: () -> Unit
+    onResetClick: () -> Unit,
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {}
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "标签管理",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold
+        // 可展开搜索按钮，包含标题文字
+        ExpandableSearchButton(
+            searchQuery = searchQuery,
+            onSearchQueryChange = onSearchQueryChange,
+            title = "标签管理"
         )
         
         Row(verticalAlignment = Alignment.CenterVertically) {

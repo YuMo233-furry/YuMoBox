@@ -8,8 +8,8 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [TagEntity::class, MediaTagCrossRef::class, TagReferenceEntity::class, com.example.yumoflatimagemanager.data.WatermarkPreset::class],
-    version = 6,
+    entities = [TagEntity::class, MediaTagCrossRef::class, TagReferenceEntity::class, TagGroupEntity::class, TagGroupTagCrossRef::class, com.example.yumoflatimagemanager.data.WatermarkPreset::class],
+    version = 7,
     exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -25,7 +25,7 @@ abstract class AppDatabase : RoomDatabase() {
 					AppDatabase::class.java,
 					"yumo_box.db"
                 )
-                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+                .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .fallbackToDestructiveMigration() // 添加这行以防止迁移失败
                 .build().also { INSTANCE = it }
 			}
@@ -150,6 +150,38 @@ abstract class AppDatabase : RoomDatabase() {
                     )
                     WHERE normalGroupSortOrder > 0
                 """)
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                // 创建标签组表
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS tag_groups (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        sortOrder INTEGER NOT NULL DEFAULT 0,
+                        isDefault INTEGER NOT NULL DEFAULT 0
+                    )
+                """)
+
+                // 创建标签组与标签的关联表
+                database.execSQL("""
+                    CREATE TABLE IF NOT EXISTS tag_group_tag_cross_ref (
+                        tagGroupId INTEGER NOT NULL,
+                        tagId INTEGER NOT NULL,
+                        PRIMARY KEY(tagGroupId, tagId),
+                        FOREIGN KEY(tagGroupId) REFERENCES tag_groups(id) ON DELETE CASCADE,
+                        FOREIGN KEY(tagId) REFERENCES tags(id) ON DELETE CASCADE
+                    )
+                """)
+
+                // 创建索引
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_tag_group_tag_cross_ref_tagGroupId ON tag_group_tag_cross_ref(tagGroupId)")
+                database.execSQL("CREATE INDEX IF NOT EXISTS index_tag_group_tag_cross_ref_tagId ON tag_group_tag_cross_ref(tagId)")
+
+                // 插入默认的"未分组"标签组
+                database.execSQL("INSERT INTO tag_groups (id, name, sortOrder, isDefault) VALUES (1, '未分组', 0, 1)")
             }
         }
 	}

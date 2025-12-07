@@ -8,6 +8,8 @@ import com.example.yumoflatimagemanager.data.ImageItem
 // 移除 PreferencesManager 导入，改为使用 ConfigManager
 import com.example.yumoflatimagemanager.data.local.AppDatabase
 import com.example.yumoflatimagemanager.data.local.TagEntity
+import com.example.yumoflatimagemanager.data.local.TagGroupEntity
+import com.example.yumoflatimagemanager.data.local.TagGroupTagCrossRef
 import com.example.yumoflatimagemanager.data.local.TagStatistics
 import com.example.yumoflatimagemanager.data.local.TagWithChildren
 import com.example.yumoflatimagemanager.data.repo.FileTagRepositoryImpl
@@ -53,6 +55,15 @@ class TagViewModelNew(
     
     // 标签流
     val tagsFlow: Flow<List<TagWithChildren>> = ObserveTagsUseCase(tagRepo).invoke()
+    
+    // 标签组流
+    val tagGroupsFlow: Flow<List<TagGroupEntity>> = db.tagDao().getAllTagGroups()
+    
+    // ==================== 标签组状态访问器（代理到 tagState） ====================
+    
+    val selectedTagGroupId: Long get() = tagState.selectedTagGroupId
+    val isTagGroupDragMode: Boolean get() = tagState.isTagGroupDragMode
+    val isTagGroupManagementVisible: Boolean get() = tagState.isTagGroupManagementVisible
     
     // ==================== 状态访问器（代理到 tagState） ====================
     
@@ -358,6 +369,134 @@ class TagViewModelNew(
     
     fun checkAndFixAllSortOrders() {
         sortManager.checkAndFixAllSortOrders()
+    }
+    
+    // ==================== 标签组管理 ====================
+    
+    // 标签组状态操作
+    fun selectTagGroup(groupId: Long) {
+        tagState.selectTagGroup(groupId)
+    }
+    
+    fun toggleTagGroupDragMode() {
+        tagState.isTagGroupDragMode = !tagState.isTagGroupDragMode
+    }
+    
+    fun toggleTagGroupManagement() {
+        tagState.toggleTagGroupManagement()
+    }
+    
+    fun setTagGroupManagementVisible(visible: Boolean) {
+        tagState.isTagGroupManagementVisible = visible
+    }
+    
+    // 标签组CRUD操作
+    fun createTagGroup(name: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val maxSortOrder = db.tagDao().getMaxTagGroupSortOrder() ?: 0
+                val tagGroup = TagGroupEntity(name = name, sortOrder = maxSortOrder + 1000)
+                db.tagDao().insertTagGroup(tagGroup)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "创建标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    fun renameTagGroup(tagGroup: TagGroupEntity, newName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val updatedGroup = tagGroup.copy(name = newName)
+                db.tagDao().updateTagGroup(updatedGroup)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "重命名标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    fun deleteTagGroup(tagGroup: TagGroupEntity) {
+        if (tagGroup.isDefault) return // 不可删除默认组
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                db.tagDao().deleteTagGroup(tagGroup)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "删除标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    // 标签组与标签关联管理
+    fun addTagToTagGroup(tagId: Long, tagGroupId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val crossRef = TagGroupTagCrossRef(tagGroupId = tagGroupId, tagId = tagId)
+                db.tagDao().insertTagGroupTagCrossRef(crossRef)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "添加标签到标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    fun removeTagFromTagGroup(tagId: Long, tagGroupId: Long) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                db.tagDao().deleteTagFromTagGroup(tagGroupId, tagId)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "从标签组移除标签失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    // 标签组排序
+    fun updateTagGroupSortOrder(tagGroupId: Long, sortOrder: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                db.tagDao().updateTagGroupSortOrder(tagGroupId, sortOrder)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "更新标签组排序失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    // 标签组拖拽排序
+    fun reorderTagGroups(tagGroups: List<TagGroupEntity>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                tagGroups.forEachIndexed { index, tagGroup ->
+                    db.tagDao().updateTagGroupSortOrder(tagGroup.id, index * 1000)
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(context, "重新排序标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+    
+    // 获取标签组下的标签
+    suspend fun getTagsByTagGroupId(tagGroupId: Long): List<TagEntity> {
+        return try {
+            db.tagDao().getTagsByTagGroupId(tagGroupId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+    
+    // 获取标签所属的标签组
+    suspend fun getTagGroupsByTagId(tagId: Long): List<TagGroupEntity> {
+        return try {
+            db.tagDao().getTagGroupsByTagId(tagId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
     }
     
     // ==================== 持久化（代理到 persistenceManager） ====================

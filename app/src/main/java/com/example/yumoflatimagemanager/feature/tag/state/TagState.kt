@@ -31,6 +31,22 @@ class TagState {
     var expandedReferencedTagIds by mutableStateOf<Set<Long>>(emptySet())
         private set
     
+    // ==================== 标签组状态 ====================
+    
+    /** 当前选中的标签组ID */
+    var selectedTagGroupId by mutableStateOf<Long>(1L) // 默认选中"未分组"标签组
+        private set
+        
+    /** 标签组展开状态 */
+    var expandedTagGroupIds by mutableStateOf<Set<Long>>(emptySet())
+        private set
+        
+    /** 标签组拖拽排序状态 */
+    var isTagGroupDragMode by mutableStateOf(false)
+    
+    /** 标签组管理页面是否显示 */
+    var isTagGroupManagementVisible by mutableStateOf(false)
+    
     // ==================== UI 状态 ====================
     
     /** 标签抽屉滚动位置 */
@@ -124,6 +140,27 @@ class TagState {
         expandedTagIds = emptySet()
         expandedReferencedTagIds = emptySet()
         tagDrawerScrollIndex = 0
+        selectedTagGroupId = 1L // 重置为默认的"未分组"标签组
+        isTagGroupDragMode = false
+        isTagGroupManagementVisible = false
+    }
+    
+    // ==================== 标签组状态更新方法 ====================
+    
+    fun selectTagGroup(groupId: Long) {
+        selectedTagGroupId = groupId
+    }
+    
+    fun toggleTagGroupExpanded(groupId: Long) {
+        expandedTagGroupIds = if (expandedTagGroupIds.contains(groupId)) {
+            expandedTagGroupIds - groupId
+        } else {
+            expandedTagGroupIds + groupId
+        }
+    }
+    
+    fun toggleTagGroupManagement() {
+        isTagGroupManagementVisible = !isTagGroupManagementVisible
     }
 }
 
