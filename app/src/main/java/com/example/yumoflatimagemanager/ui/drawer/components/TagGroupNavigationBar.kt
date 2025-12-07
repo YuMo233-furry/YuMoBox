@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
@@ -236,56 +237,86 @@ fun TagGroupNavigationBar(
                     ) {
                         itemsIndexed(tagGroupsState) { index, tagGroup ->
                             // 拖动相关状态
-                            var dragOffsetY by remember { mutableStateOf(0f) }
+                            var dragOffset by remember { mutableStateOf(Offset.Zero) }
                             val isDragging = draggedItemIndex == index
+                            
+                            val dragModifier = if (isDragging) {
+                                // 拖动中的元素，添加跟随效果
+                                Modifier
+                                    // 拖动时提高层级
+                                    .zIndex(1f)
+                                    // 跟随手指移动
+                                    .offset(x = dragOffset.x.dp, y = dragOffset.y.dp)
+                                    // 拖动中的样式
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .background(MaterialTheme.colorScheme.primaryContainer)
+                                    .border(width = 2.dp, color = MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.medium)
+                            } else {
+                                Modifier
+                                    .zIndex(0f)
+                            }
                             
                             Box(
                                 modifier = Modifier
-                                    // 添加拖动跟随效果
-                                    .offset(y = if (isDragging) dragOffsetY.dp else 0.dp)
-                                    // 拖动时提高层级
-                                    .zIndex(if (isDragging) 1f else 0f)
+                                    .then(dragModifier)
                                     // 指针输入处理
                                     .pointerInput(tagGroup) {
                                         // 长按1.5秒后直接拖动排序
                                         detectDragGesturesAfterLongPress(
                                             onDragStart = {
                                                 draggedItemIndex = index
-                                                dragOffsetY = 0f
+                                                dragOffset = Offset.Zero
                                             },
                                             onDrag = { change, offset ->
                                                 change.consume()
                                                 if (draggedItemIndex != null) {
-                                                    // 更新拖动偏移量，实现跟随手指效果
-                                                    dragOffsetY = offset.y
+                                                    // 只更新偏移量，实现平滑跟随，不立即更新排序
+                                                    dragOffset = offset
+                                                }
+                                            },
+                                            onDragEnd = {
+                                                if (draggedItemIndex != null) {
+                                                    // 拖动结束，根据偏移量计算最终位置
+                                                    val columns = 3
+                                                    val itemsPerRow = columns
                                                     
-                                                    // 计算新位置，实现自动避让
-                                                    val newIndex = (draggedItemIndex!! + (offset.y / 50).toInt()).coerceIn(0, tagGroupsState.size - 1)
+                                                    // 计算拖动的行数和列数
+                                                    val rowChange = (dragOffset.y / 50).toInt()
+                                                    val colChange = (dragOffset.x / 50).toInt()
+                                                    
+                                                    // 计算新位置
+                                                    val oldRow = draggedItemIndex!! / itemsPerRow
+                                                    val oldCol = draggedItemIndex!! % itemsPerRow
+                                                    val newRow = (oldRow + rowChange).coerceIn(0, (tagGroupsState.size + itemsPerRow - 1) / itemsPerRow - 1)
+                                                    val newCol = (oldCol + colChange).coerceIn(0, itemsPerRow - 1)
+                                                    
+                                                    // 计算新索引
+                                                    var newIndex = newRow * itemsPerRow + newCol
+                                                    // 确保新索引在有效范围内
+                                                    newIndex = newIndex.coerceIn(0, tagGroupsState.size - 1)
+                                                    
                                                     if (newIndex != draggedItemIndex) {
-                                                        // 更新标签组顺序，实现自动避让
+                                                        // 更新标签组顺序
                                                         val reorderedGroups = tagGroupsState.toMutableList()
                                                         val movedGroup = reorderedGroups.removeAt(draggedItemIndex!!)
                                                         reorderedGroups.add(newIndex, movedGroup)
                                                         
-                                                        // 更新本地状态，立即反映拖拽效果
+                                                        // 更新本地状态
                                                         tagGroupsState = reorderedGroups
                                                         
-                                                        // 重置拖动偏移量，准备下一次拖动
-                                                        dragOffsetY = 0f
+                                                        // 更新数据库中的排序
+                                                        tagViewModel.reorderTagGroups(tagGroupsState)
                                                     }
                                                 }
-                                            },
-                                            onDragEnd = {
-                                                // 拖拽结束，更新数据库中的排序
-                                                tagViewModel.reorderTagGroups(tagGroupsState)
+                                                
                                                 // 重置状态
                                                 draggedItemIndex = null
-                                                dragOffsetY = 0f
+                                                dragOffset = Offset.Zero
                                             },
                                             onDragCancel = {
                                                 // 拖拽取消，重置状态
                                                 draggedItemIndex = null
-                                                dragOffsetY = 0f
+                                                dragOffset = Offset.Zero
                                             }
                                         )
                                     }
@@ -333,10 +364,7 @@ fun TagGroupNavigationBar(
                                             }
                                             showRenameDialog = true
                                         }
-                                    },
-                                    // 传递拖动状态和偏移量
-                                    isDragging = isDragging,
-                                    dragOffset = dragOffsetY
+                                    }
                                 )
                             }
                         }
@@ -539,9 +567,7 @@ private fun TagGroupItem(
     tagGroup: TagGroupEntity,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onDoubleClick: (() -> Unit)? = null,
-    isDragging: Boolean = false,
-    dragOffset: Float = 0f
+    onDoubleClick: (() -> Unit)? = null
 ) {
     // 双击检测状态
     var lastClickTime by remember { mutableStateOf(0L) }
@@ -549,36 +575,23 @@ private fun TagGroupItem(
     
     Box(
         modifier = Modifier
-            // 添加拖动跟随效果
-            .offset(y = dragOffset.dp)
-            // 拖动时提高层级
-            .zIndex(if (isDragging) 1f else 0f)
-            // 调整背景和边框样式
+            // 基础样式
             .clip(MaterialTheme.shapes.medium)
             .background(
-                when {
-                    isDragging -> MaterialTheme.colorScheme.primaryContainer
-                    isSelected -> MaterialTheme.colorScheme.primary
-                    else -> MaterialTheme.colorScheme.surfaceVariant
-                }
+                if (isSelected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.surfaceVariant
             )
             .border(
-                width = when {
-                    isDragging -> 2.dp
-                    isSelected -> 2.dp
-                    else -> 0.dp
-                },
-                color = when {
-                    isDragging -> MaterialTheme.colorScheme.primary
-                    isSelected -> MaterialTheme.colorScheme.onPrimary
-                    else -> Color.Transparent
-                },
+                width = if (isSelected) 2.dp else 0.dp,
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                else Color.Transparent,
                 shape = MaterialTheme.shapes.medium
             )
-            // 增加内边距，确保不同长度的名称都能正常显示
+            // 适当的内边距
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            // 自适应宽度，移除固定宽度限制
-            .wrapContentWidth()
+            // 自适应宽度
+            .width(IntrinsicSize.Min)
+            // 点击处理
             .clickable {
                 val currentTime = System.currentTimeMillis()
                 if (currentTime - lastClickTime < DOUBLE_CLICK_DELAY && onDoubleClick != null) {
@@ -593,36 +606,19 @@ private fun TagGroupItem(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            // 添加拖动指示器
-            if (isDragging) {
-                Icon(
-                    imageVector = Icons.Default.DragIndicator,
-                    contentDescription = "拖动指示器",
-                    tint = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(16.dp)
-                )
-            }
-            
             // 标签组名称
             Text(
                 text = tagGroup.name,
-                fontWeight = when {
-                    isDragging -> FontWeight.SemiBold
-                    isSelected -> FontWeight.Bold
-                    else -> FontWeight.Medium
-                },
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium,
                 fontSize = 14.sp,
-                color = when {
-                    isSelected -> MaterialTheme.colorScheme.onPrimary
-                    isDragging -> MaterialTheme.colorScheme.onSurface
-                    else -> MaterialTheme.colorScheme.onSurfaceVariant
-                },
+                color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f, false) // 允许文本自适应宽度
+                modifier = Modifier.weight(1f)
             )
         }
     }
