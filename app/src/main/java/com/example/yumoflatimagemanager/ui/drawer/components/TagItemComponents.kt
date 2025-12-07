@@ -181,12 +181,12 @@ fun TagItem(
                 val directImageCount = tagStats.value?.directImageCount ?: 0
                 val totalImageCount = tagStats.value?.totalImageCount ?: 0
                 
-                // 显示直接图片数量（黄色括号）
+                // 显示直接图片数量（金黄色括号）
                 if (directImageCount > 0) {
                     Text(
                         text = "($directImageCount)",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.primary, // 使用主题的主色调（黄色）
+                        color = Color(0xFFFFC107), // 使用固定的金黄色
                         modifier = Modifier.padding(end = 4.dp)
                     )
                 }
