@@ -237,7 +237,7 @@ fun TagGroupNavigationBar(
                     ) {
                         itemsIndexed(tagGroupsState) { index, tagGroup ->
                             // 拖动相关状态
-                            var dragOffset by remember { mutableStateOf(Offset.Zero) }
+                            var offset by remember { mutableStateOf(Offset.Zero) }
                             val isDragging = draggedItemIndex == index
                             
                             val dragModifier = if (isDragging) {
@@ -246,7 +246,7 @@ fun TagGroupNavigationBar(
                                     // 拖动时提高层级
                                     .zIndex(1f)
                                     // 跟随手指移动
-                                    .offset(x = dragOffset.x.dp, y = dragOffset.y.dp)
+                                    .offset(x = offset.x.dp, y = offset.y.dp)
                                     // 拖动中的样式
                                     .clip(MaterialTheme.shapes.medium)
                                     .background(MaterialTheme.colorScheme.primaryContainer)
@@ -261,28 +261,29 @@ fun TagGroupNavigationBar(
                                     .then(dragModifier)
                                     // 指针输入处理
                                     .pointerInput(tagGroup) {
-                                        // 长按1.5秒后直接拖动排序
+                                        // 长按后直接拖动排序
                                         detectDragGesturesAfterLongPress(
                                             onDragStart = {
                                                 draggedItemIndex = index
-                                                dragOffset = Offset.Zero
+                                                offset = Offset.Zero
                                             },
-                                            onDrag = { change, offset ->
+                                            onDrag = { change, dragAmount ->
                                                 change.consume()
                                                 if (draggedItemIndex != null) {
-                                                    // 只更新偏移量，实现平滑跟随，不立即更新排序
-                                                    dragOffset = offset
+                                                    // 使用增量偏移量，实现平滑跟随
+                                                    offset += dragAmount
                                                 }
                                             },
                                             onDragEnd = {
                                                 if (draggedItemIndex != null) {
-                                                    // 拖动结束，根据偏移量计算最终位置
+                                                    // 计算新位置
                                                     val columns = 3
                                                     val itemsPerRow = columns
                                                     
-                                                    // 计算拖动的行数和列数
-                                                    val rowChange = (dragOffset.y / 50).toInt()
-                                                    val colChange = (dragOffset.x / 50).toInt()
+                                                    // 计算移动的距离对应的行和列变化
+                                                    val threshold = 50f
+                                                    val rowChange = (offset.y / threshold).toInt()
+                                                    val colChange = (offset.x / threshold).toInt()
                                                     
                                                     // 计算新位置
                                                     val oldRow = draggedItemIndex!! / itemsPerRow
@@ -301,22 +302,24 @@ fun TagGroupNavigationBar(
                                                         val movedGroup = reorderedGroups.removeAt(draggedItemIndex!!)
                                                         reorderedGroups.add(newIndex, movedGroup)
                                                         
-                                                        // 更新本地状态
+                                                        // 只更新本地状态，不立即更新数据库，避免UI卡顿
                                                         tagGroupsState = reorderedGroups
                                                         
-                                                        // 更新数据库中的排序
-                                                        tagViewModel.reorderTagGroups(tagGroupsState)
+                                                        // 使用协程异步更新数据库，避免UI卡顿
+                                                        coroutineScope.launch(Dispatchers.IO) {
+                                                            tagViewModel.reorderTagGroups(reorderedGroups)
+                                                        }
                                                     }
                                                 }
                                                 
                                                 // 重置状态
                                                 draggedItemIndex = null
-                                                dragOffset = Offset.Zero
+                                                offset = Offset.Zero
                                             },
                                             onDragCancel = {
                                                 // 拖拽取消，重置状态
                                                 draggedItemIndex = null
-                                                dragOffset = Offset.Zero
+                                                offset = Offset.Zero
                                             }
                                         )
                                     }
@@ -589,8 +592,8 @@ private fun TagGroupItem(
             )
             // 适当的内边距
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            // 自适应宽度
-            .width(IntrinsicSize.Min)
+            // 自适应宽度，确保文本有足够空间
+            .widthIn(min = 80.dp)
             // 点击处理
             .clickable {
                 val currentTime = System.currentTimeMillis()
@@ -606,8 +609,7 @@ private fun TagGroupItem(
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            modifier = Modifier.fillMaxWidth()
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             // 标签组名称
             Text(
@@ -617,8 +619,7 @@ private fun TagGroupItem(
                 color = if (isSelected) MaterialTheme.colorScheme.onPrimary
                 else MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.weight(1f)
+                overflow = TextOverflow.Ellipsis
             )
         }
     }
