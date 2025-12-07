@@ -1,11 +1,13 @@
 package com.example.yumoflatimagemanager.data.local
 
 import android.content.Context
+import android.os.Environment
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import java.io.File
 
 @Database(
     entities = [TagEntity::class, MediaTagCrossRef::class, TagReferenceEntity::class, TagGroupEntity::class, TagGroupTagCrossRef::class, com.example.yumoflatimagemanager.data.WatermarkPreset::class],
@@ -18,12 +20,19 @@ abstract class AppDatabase : RoomDatabase() {
 
 	companion object {
 		@Volatile private var INSTANCE: AppDatabase? = null
-		fun get(context: Context): AppDatabase =
+		fun get(context: Context): AppDatabase = 
 			INSTANCE ?: synchronized(this) {
+                // 获取公共文件夹路径，用于存储数据库
+                val publicDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+                val appDir = File(publicDir, "YuMoBox")
+                appDir.mkdirs() // 创建应用专用目录
+                
+                val dbPath = File(appDir, "yumo_box.db").absolutePath
+                
                 INSTANCE ?: Room.databaseBuilder(
 					context.applicationContext,
 					AppDatabase::class.java,
-					"yumo_box.db"
+					dbPath
                 )
                 .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
                 .fallbackToDestructiveMigration() // 添加这行以防止迁移失败

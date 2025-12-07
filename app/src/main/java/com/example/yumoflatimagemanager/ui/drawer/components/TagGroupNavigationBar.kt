@@ -5,11 +5,13 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -18,10 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.yumoflatimagemanager.MainViewModel
 import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagGroupEntity
@@ -74,6 +78,11 @@ fun TagGroupNavigationBar(
     // 标签组管理展开状态
     var isManagementExpanded by remember { mutableStateOf(false) }
     
+    // 标签组拖拽排序状态
+    var isDragMode by remember { mutableStateOf(false) }
+    var draggedItemIndex by remember { mutableStateOf<Int?>(null) }
+    var localTagGroups by remember { mutableStateOf<List<TagGroupEntity>>(emptyList()) }
+    
     // 协程作用域
     val coroutineScope = rememberCoroutineScope()
     
@@ -83,103 +92,118 @@ fun TagGroupNavigationBar(
         animationSpec = tween(durationMillis = 300)
     )
     
-    Column(modifier = modifier) {
-        // 标签组导航栏主内容
-        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            // 横向滚动的标签组列表 - 占据大部分宽度
-            LazyRow(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                contentPadding = PaddingValues(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
-            ) {
-                items(tagGroups, key = { it.id }) {
-                    TagGroupItem(
-                        tagGroup = it,
-                        isSelected = it.id == selectedTagGroupId,
-                        onClick = {
-                            val currentTime = System.currentTimeMillis()
-                            if (currentTime - lastClickTime < DOUBLE_CLICK_DELAY) {
-                                // 双击：打开标签组编辑对话框
-                                selectedTagGroup = it
-                                renameGroupName = it.name
-                                
-                                // 加载所有标签和当前标签组中的标签
-                                coroutineScope.launch {
-                                    try {
-                                        // 加载所有标签
-                                        val tagsWithChildren = viewModel.tagsFlow.first()
-                                        val tagEntities = mutableListOf<TagEntity>()
-                                        
-                                        // 收集所有本体标签
-                                        tagsWithChildren.forEach { tagWithChild ->
-                                            tagEntities.add(tagWithChild.tag)
-                                        }
-                                        
-                                        // 去重并排序
-                                        allTags = tagEntities.distinctBy { it.id }.sortedBy { it.name }
-                                        
-                                        // 加载当前标签组中的标签
-                                        val tagsInGroup = tagViewModel.getTagsByTagGroupId(it.id)
-                                        selectedTags = tagsInGroup.map { it.id }.toSet()
-                                    } catch (e: Exception) {
-                                        // 处理异常
-                                        allTags = emptyList()
-                                        selectedTags = emptySet()
-                                    }
-                                }
-                                showRenameDialog = true
-                            } else {
-                                // 单击：切换标签组
-                                // 实现未选中功能：重复点击已选中标签组进入未选择状态
-                                tagViewModel.selectTagGroup(it.id)
-                            }
-                            lastClickTime = currentTime
-                        }
-                    )
-                }
-            }
-            
-            // 右侧固定按钮组 - 固定宽度，不影响LazyRow
-            Row(
-                modifier = Modifier.padding(end = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // 新建标签组按钮
-                IconButton(
-                    onClick = { showCreateDialog = true },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
+    // 同步本地标签组列表
+    LaunchedEffect(tagGroups, isManagementExpanded) {
+        if (isManagementExpanded) {
+            localTagGroups = tagGroups
+        }
+    }
+    
+    Box(modifier = modifier) {
+        Column {
+            // 标签组导航栏主内容
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                // 横向滚动的标签组列表 - 占据大部分宽度
+                LazyRow(
+                    modifier = Modifier.weight(1f),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    contentPadding = PaddingValues(start = 16.dp, end = 8.dp, top = 8.dp, bottom = 8.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "新建标签组",
-                        tint = MaterialTheme.colorScheme.primary
-                    )
+                    items(tagGroups, key = { it.id }) {
+                        TagGroupItem(
+                            tagGroup = it,
+                            isSelected = it.id == selectedTagGroupId,
+                            onClick = {
+                                val currentTime = System.currentTimeMillis()
+                                if (currentTime - lastClickTime < DOUBLE_CLICK_DELAY) {
+                                    // 双击：打开标签组编辑对话框
+                                    // 检查是否为默认标签组，如果是则不允许编辑
+                                    if (it.isDefault) {
+                                        // 不允许编辑默认标签组
+                                        return@TagGroupItem
+                                    }
+                                    
+                                    selectedTagGroup = it
+                                    renameGroupName = it.name
+                                    
+                                    // 加载所有标签和当前标签组中的标签
+                                    coroutineScope.launch {
+                                        try {
+                                            // 加载所有标签
+                                            val tagsWithChildren = viewModel.tagsFlow.first()
+                                            val tagEntities = mutableListOf<TagEntity>()
+                                            
+                                            // 收集所有本体标签
+                                            tagsWithChildren.forEach { tagWithChild ->
+                                                tagEntities.add(tagWithChild.tag)
+                                            }
+                                            
+                                            // 去重并排序
+                                            allTags = tagEntities.distinctBy { it.id }.sortedBy { it.name }
+                                            
+                                            // 加载当前标签组中的标签
+                                            val tagsInGroup = tagViewModel.getTagsByTagGroupId(it.id)
+                                            selectedTags = tagsInGroup.map { it.id }.toSet()
+                                        } catch (e: Exception) {
+                                            // 处理异常
+                                            allTags = emptyList()
+                                            selectedTags = emptySet()
+                                        }
+                                    }
+                                    showRenameDialog = true
+                                } else {
+                                    // 单击：切换标签组
+                                    // 实现未选中功能：重复点击已选中标签组进入未选择状态
+                                    tagViewModel.selectTagGroup(it.id)
+                                }
+                                lastClickTime = currentTime
+                            }
+                        )
+                    }
                 }
                 
-                // 展开标签组管理页面的按钮（带旋转动画）
-                IconButton(
-                    onClick = { isManagementExpanded = !isManagementExpanded },
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primaryContainer)
+                // 右侧固定按钮组 - 固定宽度，不影响LazyRow
+                Row(
+                    modifier = Modifier.padding(end = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.ExpandMore,
-                        contentDescription = if (isManagementExpanded) "收起管理" else "展开管理",
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.rotate(expandButtonRotation)
-                    )
+                    // 新建标签组按钮
+                    IconButton(
+                        onClick = { showCreateDialog = true },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "新建标签组",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                    
+                    // 展开标签组管理页面的按钮（带旋转动画）
+                    IconButton(
+                        onClick = { isManagementExpanded = !isManagementExpanded },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = if (isManagementExpanded) "收起管理" else "展开管理",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.rotate(expandButtonRotation)
+                        )
+                    }
                 }
             }
         }
         
-        // 管理页面叠加层 - 仅在展开时显示
+        // 管理页面叠加层 - 仅在展开时显示，绝对定位覆盖在原UI上
         AnimatedVisibility(
             visible = isManagementExpanded,
             enter = fadeIn() + slideInVertically(initialOffsetY = { -it }),
@@ -187,10 +211,11 @@ fun TagGroupNavigationBar(
         ) {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f))
                     .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     .padding(16.dp)
+                    .zIndex(1f)
             ) {
                 Column {
                     // 标题
@@ -201,22 +226,119 @@ fun TagGroupNavigationBar(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
                     
-                    // 平铺显示所有标签组
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    // 拖拽模式控制
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically,
-                        contentPadding = PaddingValues(vertical = 8.dp)
-                    ) {
-                        items(tagGroups, key = { it.id }) {
-                            TagGroupItem(
-                                tagGroup = it,
-                                isSelected = it.id == selectedTagGroupId,
-                                onClick = {
-                                    // 单击：切换标签组并关闭管理视图
-                                    tagViewModel.selectTagGroup(it.id)
-                                    isManagementExpanded = false
-                                }
+                        content = {
+                            Text(
+                                text = if (isDragMode) "拖拽排序模式" else "点击进入拖拽模式",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.secondary
                             )
+                            Button(
+                                onClick = { isDragMode = !isDragMode },
+                                modifier = Modifier.height(32.dp),
+                                contentPadding = PaddingValues(horizontal = 16.dp)
+                            ) {
+                                Text(text = if (isDragMode) "退出排序" else "进入排序")
+                            }
+                        }
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // 平铺显示所有标签组，上下滚动，支持拖拽排序
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.height(250.dp)
+                    ) {
+                        itemsIndexed(localTagGroups, key = { index, item -> item.id }) { index, tagGroup ->
+                            val isDragging = draggedItemIndex == index
+                            
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(if (isDragging) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
+                                    .border(
+                                        width = if (isDragging) 2.dp else 0.dp,
+                                        color = if (isDragging) MaterialTheme.colorScheme.primary else Color.Transparent
+                                    )
+                                    .padding(8.dp)
+                                    .zIndex(if (isDragging) 1f else 0f)
+                                    .pointerInput(isDragMode) {
+                                        if (isDragMode && !tagGroup.isDefault) {
+                                            detectDragGesturesAfterLongPress(
+                                                onDragStart = { draggedItemIndex = index },
+                                                onDrag = { change, offset ->
+                                                    change.consume()
+                                                    // 这里可以添加拖拽动画效果
+                                                },
+                                                onDragEnd = {
+                                                    // 拖拽结束，更新排序
+                                                    draggedItemIndex = null
+                                                    // 这里可以添加排序更新逻辑
+                                                }
+                                            )
+                                        }
+                                    }
+                            ) {
+                                // 拖拽指示器
+                                if (isDragMode && !tagGroup.isDefault) {
+                                    Icon(
+                                        imageVector = Icons.Default.DragIndicator,
+                                        contentDescription = "拖拽排序",
+                                        tint = MaterialTheme.colorScheme.secondary,
+                                        modifier = Modifier.padding(end = 8.dp)
+                                    )
+                                }
+                                
+                                // 标签组项，占据剩余空间
+                                TagGroupItem(
+                                    tagGroup = tagGroup,
+                                    isSelected = tagGroup.id == selectedTagGroupId,
+                                    onClick = {
+                                        // 单击：切换标签组，但不关闭管理视图
+                                        tagViewModel.selectTagGroup(tagGroup.id)
+                                    },
+                                    onDoubleClick = {
+                                        // 双击：打开标签组编辑对话框
+                                        // 检查是否为默认标签组，如果是则不允许编辑
+                                        if (!tagGroup.isDefault) {
+                                            selectedTagGroup = tagGroup
+                                            renameGroupName = tagGroup.name
+                                            
+                                            // 加载所有标签和当前标签组中的标签
+                                            coroutineScope.launch {
+                                                try {
+                                                    // 加载所有标签
+                                                    val tagsWithChildren = viewModel.tagsFlow.first()
+                                                    val tagEntities = mutableListOf<TagEntity>()
+                                                    
+                                                    // 收集所有本体标签
+                                                    tagsWithChildren.forEach { tagWithChild ->
+                                                        tagEntities.add(tagWithChild.tag)
+                                                    }
+                                                    
+                                                    // 去重并排序
+                                                    allTags = tagEntities.distinctBy { it.id }.sortedBy { it.name }
+                                                    
+                                                    // 加载当前标签组中的标签
+                                                    val tagsInGroup = tagViewModel.getTagsByTagGroupId(tagGroup.id)
+                                                    selectedTags = tagsInGroup.map { it.id }.toSet()
+                                                } catch (e: Exception) {
+                                                    // 处理异常
+                                                    allTags = emptyList()
+                                                    selectedTags = emptySet()
+                                                }
+                                            }
+                                            showRenameDialog = true
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -348,6 +470,9 @@ fun TagGroupNavigationBar(
                                     // 更新标签组中的标签关联
                                     coroutineScope.launch {
                                         try {
+                                            // 更新标签组名称
+                                            tagViewModel.renameTagGroup(it, renameGroupName)
+                                            
                                             // 获取当前标签组中的所有标签
                                             val currentTagsInGroup = tagViewModel.getTagsByTagGroupId(tagGroupId)
                                             val currentTagIds = currentTagsInGroup.map { it.id }.toSet()
@@ -407,8 +532,13 @@ fun TagGroupNavigationBar(
 private fun TagGroupItem(
     tagGroup: TagGroupEntity,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    onDoubleClick: (() -> Unit)? = null
 ) {
+    // 双击检测状态
+    var lastClickTime by remember { mutableStateOf(0L) }
+    val DOUBLE_CLICK_DELAY = 300L
+    
     Box(
         modifier = Modifier
             .clip(MaterialTheme.shapes.medium)
@@ -423,7 +553,17 @@ private fun TagGroupItem(
                 shape = MaterialTheme.shapes.medium
             )
             .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clickable(onClick = onClick)
+            .clickable {
+                val currentTime = System.currentTimeMillis()
+                if (currentTime - lastClickTime < DOUBLE_CLICK_DELAY && onDoubleClick != null) {
+                    // 双击
+                    onDoubleClick()
+                } else {
+                    // 单击
+                    onClick()
+                }
+                lastClickTime = currentTime
+            }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
