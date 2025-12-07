@@ -5,6 +5,8 @@ import android.util.Log
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -30,6 +32,10 @@ object TagFileManager {
     
     // 标签数据缓存
     private val tagCache: ConcurrentHashMap<Long, TagData> = ConcurrentHashMap()
+    
+    // 标签变化通知流，用于通知标签数据变化
+    private val _tagChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val tagChanges: SharedFlow<Unit> = _tagChanges
     
     /**
      * 获取标签存储根目录
@@ -99,6 +105,8 @@ object TagFileManager {
             FileOutputStream(tagFile).bufferedWriter().use { it.write(jsonString) }
             // 更新缓存
             tagCache[tagData.id] = tagData
+            // 发送标签变化通知
+            _tagChanges.tryEmit(Unit)
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to write tag file for id ${tagData.id}: ${e.message}")
@@ -118,6 +126,8 @@ object TagFileManager {
             if (deleted) {
                 // 从缓存中移除
                 tagCache.remove(tagId)
+                // 发送标签变化通知
+                _tagChanges.tryEmit(Unit)
             }
             deleted
         } catch (e: Exception) {
@@ -210,6 +220,8 @@ object TagFileManager {
      */
     fun clearCache() {
         tagCache.clear()
+        // 发送标签变化通知
+        _tagChanges.tryEmit(Unit)
     }
     
     /**
@@ -236,6 +248,8 @@ object TagFileManager {
         
         if (allDeleted) {
             clearCache()
+            // 发送标签变化通知
+            _tagChanges.tryEmit(Unit)
         }
         
         return allDeleted

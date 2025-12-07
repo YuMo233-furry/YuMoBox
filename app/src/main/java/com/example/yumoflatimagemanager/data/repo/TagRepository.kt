@@ -10,7 +10,13 @@ import com.example.yumoflatimagemanager.data.model.TagData
 import com.example.yumoflatimagemanager.data.model.TagFileManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.flow.withContext
 import kotlinx.coroutines.withContext
 import java.util.ArrayDeque
 
@@ -349,35 +355,47 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
     private var tagIdCounter: Long = 0L
     
     override fun observeRootTags(): Flow<List<TagWithChildren>> = flow {
-        withContext(Dispatchers.IO) {
-            val allTags = TagFileManager.getAllTags()
-            val rootTags = allTags.filter { it.parentId == null }
-            
-            // 将文件存储的TagData转换为数据库模型的TagWithChildren
-            val tagWithChildrenList = rootTags.mapNotNull { tagData ->
-                val tagEntity = tagData.toTagEntity()
-                val children = allTags.filter { it.parentId == tagData.id }.map { it.toTagEntity() }
-                val referencedTags = tagData.referencedTags.map { ref ->
-                    TagReferenceEntity(
-                        parentTagId = tagData.id,
-                        childTagId = ref.childTagId,
-                        sortOrder = ref.sortOrder
-                    )
-                }
-                
-                TagWithChildren(tagEntity, children, referencedTags)
+        // 初始获取一次标签数据
+        emit(getRootTagsWithChildren())
+        
+        // 监听标签变化通知，每次变化时重新获取数据
+        TagFileManager.tagChanges.collect {
+            emit(getRootTagsWithChildren())
+        }
+    }.flowOn(Dispatchers.IO)
+    
+    /**
+     * 获取根标签及其子标签数据
+     */
+    private fun getRootTagsWithChildren(): List<TagWithChildren> {
+        val allTags = TagFileManager.getAllTags()
+        val rootTags = allTags.filter { it.parentId == null }
+        
+        // 将文件存储的TagData转换为数据库模型的TagWithChildren
+        return rootTags.mapNotNull { tagData ->
+            val tagEntity = tagData.toTagEntity()
+            val children = allTags.filter { it.parentId == tagData.id }.map { it.toTagEntity() }
+            val referencedTags = tagData.referencedTags.map { ref ->
+                TagReferenceEntity(
+                    parentTagId = tagData.id,
+                    childTagId = ref.childTagId,
+                    sortOrder = ref.sortOrder
+                )
             }
             
-            emit(tagWithChildrenList)
+            TagWithChildren(tagEntity, children, referencedTags)
         }
     }
     
     override fun getAllTags(): Flow<List<TagEntity>> = flow {
-        withContext(Dispatchers.IO) {
-            val allTags = TagFileManager.getAllTags()
-            emit(allTags.map { it.toTagEntity() })
+        // 初始获取一次标签数据
+        emit(getAllTagsList())
+        
+        // 监听标签变化通知，每次变化时重新获取数据
+        TagFileManager.tagChanges.collect {
+            emit(getAllTagsList())
         }
-    }
+    }.flowOn(Dispatchers.IO)
     
     override suspend fun getAllTagsList(): List<TagEntity> = withContext(Dispatchers.IO) {
         TagFileManager.getAllTags().map { it.toTagEntity() }
