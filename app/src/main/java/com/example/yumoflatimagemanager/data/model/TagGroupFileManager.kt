@@ -43,6 +43,33 @@ object TagGroupFileManager {
     private val _tagGroupChanges = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val tagGroupChanges: SharedFlow<Unit> = _tagGroupChanges
     
+    // 初始化
+    init {
+        // 确保标签组目录存在
+        createTagGroupsDirectory()
+        
+        // 初始化默认的"未分组"标签组
+        initializeDefaultTagGroup()
+    }
+    
+    /**
+     * 初始化默认的"未分组"标签组
+     */
+    fun initializeDefaultTagGroup() {
+        // 检查是否已存在"未分组"标签组
+        val allGroups = getAllTagGroups()
+        if (allGroups.none { it.name == "未分组" || it.isDefault }) {
+            val defaultGroup = TagGroupData(
+                id = 1,
+                name = "未分组",
+                sortOrder = 0,
+                isDefault = true,
+                tagIds = emptyList()
+            )
+            writeTagGroup(defaultGroup)
+        }
+    }
+    
     /**
      * 获取标签组存储根目录
      * @return 标签组存储根目录

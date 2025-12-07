@@ -423,6 +423,7 @@ class TagViewModelNew(
     // 标签组状态操作
     fun selectTagGroup(groupId: Long) {
         tagState.selectTagGroup(groupId)
+        persistenceManager.saveTagGroupSelection()
     }
     
     fun toggleTagGroupDragMode() {
@@ -566,9 +567,13 @@ class TagViewModelNew(
                 return emptyList()
             }
             
-            // 这里需要从标签管理器获取对应的标签实体
-            // 目前先返回空列表，后续需要完善
-            emptyList()
+            // 从标签文件管理器获取所有标签
+            val allTags = com.example.yumoflatimagemanager.data.model.TagFileManager.getAllTags()
+            
+            // 根据 tagIds 过滤并转换为 TagEntity
+            return allTags
+                .filter { tagGroupData.tagIds.contains(it.id) }
+                .map { it.toTagEntity() }
         } catch (e: Exception) {
             e.printStackTrace()
             println("ERROR: 获取标签组下的标签失败 - 标签组ID: $tagGroupId, 错误: ${e.message}")

@@ -37,4 +37,20 @@ data class TagData(
         var parentTagId: Long,
         var sortOrder: Int = 0
     )
+    
+    /**
+     * 转换为 TagEntity 对象
+     */
+    fun toTagEntity(): com.example.yumoflatimagemanager.data.local.TagEntity {
+        return com.example.yumoflatimagemanager.data.local.TagEntity(
+            id = id,
+            parentId = parentId,
+            name = name,
+            sortOrder = sortOrder,
+            referencedGroupSortOrder = referencedGroupSortOrder,
+            normalGroupSortOrder = normalGroupSortOrder,
+            isExpanded = isExpanded,
+            imageCount = imageCount
+        )
+    }
 }

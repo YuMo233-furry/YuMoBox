@@ -49,7 +49,9 @@ data class TagConfig(
     // 展开的引用标签ID集合
     var expandedReferencedTagIds: Set<Long> = emptySet(),
     // 标签抽屉滚动索引
-    var tagDrawerScrollIndex: Int = 0
+    var tagDrawerScrollIndex: Int = 0,
+    // 当前选中的标签组ID
+    var selectedTagGroupId: Long = 1L
 )
 
 /**

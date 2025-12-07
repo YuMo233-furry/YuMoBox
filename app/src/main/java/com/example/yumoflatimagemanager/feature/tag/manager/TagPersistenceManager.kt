@@ -30,6 +30,16 @@ class TagPersistenceManager(
         tagConfig.expandedTagIds = tagState.expandedTagIds
         tagConfig.expandedReferencedTagIds = tagState.expandedReferencedTagIds
         tagConfig.tagDrawerScrollIndex = tagState.tagDrawerScrollIndex
+        tagConfig.selectedTagGroupId = tagState.selectedTagGroupId ?: 1L // 如果为null，保存默认的"未分组"标签组
+        ConfigManager.writeTagConfig(tagConfig)
+    }
+    
+    /**
+     * 保存当前选中的标签组
+     */
+    fun saveTagGroupSelection() {
+        val tagConfig = ConfigManager.readTagConfig()
+        tagConfig.selectedTagGroupId = tagState.selectedTagGroupId ?: 1L // 如果为null，保存默认的"未分组"标签组
         ConfigManager.writeTagConfig(tagConfig)
     }
     
@@ -132,6 +142,17 @@ class TagPersistenceManager(
         restoreExpandedTags()
         restoreExpandedReferencedTags()
         restoreTagDrawerScrollPosition()
+        restoreTagGroupSelection()
+    }
+    
+    /**
+     * 恢复标签组选择
+     */
+    fun restoreTagGroupSelection() {
+        val tagConfig = ConfigManager.readTagConfig()
+        val savedGroupId = tagConfig.selectedTagGroupId
+        // 如果保存的是1（默认"未分组"），则直接选中，否则实现重复点击逻辑
+        tagState.selectTagGroup(savedGroupId)
     }
     
     /**
@@ -147,6 +168,7 @@ class TagPersistenceManager(
         tagConfig.expandedTagIds = emptySet()
         tagConfig.expandedReferencedTagIds = emptySet()
         tagConfig.tagDrawerScrollIndex = 0
+        tagConfig.selectedTagGroupId = 1L // 重置为默认的"未分组"标签组
         ConfigManager.writeTagConfig(tagConfig)
     }
 }

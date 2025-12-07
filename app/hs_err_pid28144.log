@@ -1,0 +1,273 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (mmap) failed to map 264241152 bytes for G1 virtual space
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   The process is running with CompressedOops enabled, and the Java Heap may be blocking the growth of the native heap
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+#   JVM is running with Unscaled Compressed Oops mode in which the Java heap is
+#     placed in the first 4GB address space. The Java Heap base address is the
+#     maximum limit for the native heap growth. Please use -XX:HeapBaseMinAddress
+#     to set the Java Heap base and to place the Java Heap above 4GB virtual address.
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (os_windows.cpp:3603), pid=28144, tid=18732
+#
+# JRE version:  (21.0.9+7) (build )
+# Java VM: Java HotSpot(TM) 64-Bit Server VM (21.0.9+7-LTS-338, mixed mode, sharing, tiered, compressed oops, compressed class ptrs, g1 gc, windows-amd64)
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -Djava.awt.headless=true -Djava.library.path=C:\Program Files\Java\jdk-21\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Users\Administrator\.trae-cn\binaries\node\versions\22.21.0;c:\Users\Administrator\.trae-cn\sdks\workspaces\031b1510\versions\node\current;c:\Users\Administrator\.trae-cn\sdks\versions\node\current;C:\Program Files\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;E:\Bandizip\;C:\Program Files\dotnet\;C:\Program Files (x86)\dotnet\;C:\Program Files\Common Files\Autodesk Shared\;E:\Git\cmd;C:\Program Files (x86)\Autodesk\Backburner\;C:\Program Files\Sunshine;C:\Program Files\Sunshine\tools;E:\Sunshine;E:\Sunshine\tools;D:\Microsoft VS Code\bin;C:\Program Files\Java\jdk-21\bin;C:\Program Files\Java\jdk-21\jre\bin;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;C:\Program Files\HP\OMEN-Broadcast\Common;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;D:\Microsoft VS Code\bin;C:\Program Files\Java\jdk-21\bin;C:\Program Files\Java\jdk-21\jre\bin;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;;c:\Users\Administrator\.trae-cn\extensions\vscjava.vscode-java-debug-0.58.3-universal\bundled\scripts\noConfigScripts;.;D:\app\YuMoBox\app\src\testRelease\jniLibs;D:\app\YuMoBox\app\src\test\jniLibs -Dorg.gradle.internal.worker.tmpdir=D:\app\YuMoBox\app\build\tmp\testReleaseUnitTest\work --add-opens=java.base/java.io=ALL-UNNAMED -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=CN -Duser.language=zh -Duser.variant -ea worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Test Executor 2'
+
+Host: 13th Gen Intel(R) Core(TM) i5-13500HX, 20 cores, 15G,  Windows 11 , 64 bit Build 26100 (10.0.26100.7019)
+Time: Sun Dec  7 23:20:21 2025 elapsed time: 0.012261 seconds (0d 0h 0m 0s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x00000287f2888ac0):  JavaThread "Unknown thread" [_thread_in_vm, id=18732, stack(0x000000fd4b000000,0x000000fd4b100000) (1024K)]
+
+Stack: [0x000000fd4b000000,0x000000fd4b100000]
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [jvm.dll+0x6cbf89]
+V  [jvm.dll+0x858421]
+V  [jvm.dll+0x85a94e]
+V  [jvm.dll+0x85b023]
+V  [jvm.dll+0x27ebc6]
+V  [jvm.dll+0x6c8705]
+V  [jvm.dll+0x6bd26a]
+V  [jvm.dll+0x354a0a]
+V  [jvm.dll+0x35c686]
+V  [jvm.dll+0x3af79e]
+V  [jvm.dll+0x3afa48]
+V  [jvm.dll+0x328d1c]
+V  [jvm.dll+0x32987b]
+V  [jvm.dll+0x821739]
+V  [jvm.dll+0x3bc481]
+V  [jvm.dll+0x80a9b8]
+V  [jvm.dll+0x45166e]
+V  [jvm.dll+0x453261]
+C  [jli.dll+0x52a3]
+C  [ucrtbase.dll+0x37b0]
+C  [KERNEL32.DLL+0x2e8d7]
+C  [ntdll.dll+0x8c53c]
+
+
+---------------  P R O C E S S  ---------------
+
+Threads class SMR info:
+_java_thread_list=0x00007ff8c19dfc08, length=0, elements={
+}
+
+Java Threads: ( => current thread )
+Total: 0
+
+Other Threads:
+  0x00000287f4d02ab0 WorkerThread "GC Thread#0"                     [id=2832, stack(0x000000fd4b100000,0x000000fd4b200000) (1024K)]
+  0x00000287f4d07aa0 ConcurrentGCThread "G1 Main Marker"            [id=43136, stack(0x000000fd4b200000,0x000000fd4b300000) (1024K)]
+  0x00000287f4d09430 WorkerThread "G1 Conc#0"                       [id=43080, stack(0x000000fd4b300000,0x000000fd4b400000) (1024K)]
+
+[error occurred during error reporting (printing all threads), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ff8c114b4a7]
+VM state: not at safepoint (not fully initialized)
+
+VM Mutex/Monitor currently owned by a thread:  ([mutex/lock_event])
+[0x00007ff8c1a50ef0] Heap_lock - owner thread: 0x00000287f2888ac0
+
+Heap address: 0x00000000e0000000, size: 512 MB, Compressed Oops mode: 32-bit
+
+CDS archive(s) mapped at: [0x0000000000000000-0x0000000000000000-0x0000000000000000), size 0, SharedBaseAddress: 0x0000000800000000, ArchiveRelocationMode: 1.
+Narrow klass base: 0x0000000000000000, Narrow klass shift: 0, Narrow klass range: 0x0
+
+GC Precious Log:
+ CardTable entry size: 512
+ Card Set container configuration: InlinePtr #cards 5 size 8 Array Of Cards #cards 12 size 40 Howl #buckets 4 coarsen threshold 1843 Howl Bitmap #cards 512 size 80 coarsen threshold 460 Card regions per heap region 1 cards per card region 2048
+
+Heap:
+ garbage-first heap   total 0K, used 0K [0x00000000e0000000, 0x0000000100000000)
+  region size 1024K, 0 young (0K), 0 survivors (0K)
+
+[error occurred during error reporting (printing heap information), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ff8c1534ff9]
+GC Heap History (0 events):
+No events
+
+Dll operation events (1 events):
+Event: 0.008 Loaded shared library C:\Program Files\Java\jdk-21\bin\java.dll
+
+Deoptimization events (0 events):
+No events
+
+Classes loaded (0 events):
+No events
+
+Classes unloaded (0 events):
+No events
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (0 events):
+No events
+
+ZGC Phase Switch (0 events):
+No events
+
+VM Operations (0 events):
+No events
+
+Events (0 events):
+No events
+
+
+Dynamic libraries:
+0x00007ff6808b0000 - 0x00007ff6808c0000 	C:\Program Files\Java\jdk-21\bin\java.exe
+0x00007ff98d340000 - 0x00007ff98d5a8000 	C:\WINDOWS\SYSTEM32\ntdll.dll
+0x00007ff98c070000 - 0x00007ff98c139000 	C:\WINDOWS\System32\KERNEL32.DLL
+0x00007ff98a740000 - 0x00007ff98ab38000 	C:\WINDOWS\System32\KERNELBASE.dll
+0x00007ff98a490000 - 0x00007ff98a5db000 	C:\WINDOWS\System32\ucrtbase.dll
+0x00007ff8d6ac0000 - 0x00007ff8d6adb000 	C:\Program Files\Java\jdk-21\bin\VCRUNTIME140.dll
+0x00007ff8f4da0000 - 0x00007ff8f4db9000 	C:\Program Files\Java\jdk-21\bin\jli.dll
+0x00007ff98d190000 - 0x00007ff98d244000 	C:\WINDOWS\System32\ADVAPI32.dll
+0x00007ff98bae0000 - 0x00007ff98bb89000 	C:\WINDOWS\System32\msvcrt.dll
+0x00007ff98d0e0000 - 0x00007ff98d186000 	C:\WINDOWS\System32\sechost.dll
+0x00007ff98bdc0000 - 0x00007ff98bed8000 	C:\WINDOWS\System32\RPCRT4.dll
+0x00007ff98c5d0000 - 0x00007ff98c797000 	C:\WINDOWS\System32\USER32.dll
+0x00007ff98af40000 - 0x00007ff98af67000 	C:\WINDOWS\System32\win32u.dll
+0x00007ff98d050000 - 0x00007ff98d07b000 	C:\WINDOWS\System32\GDI32.dll
+0x00007ff98ab40000 - 0x00007ff98ac6c000 	C:\WINDOWS\System32\gdi32full.dll
+0x00007ff9726e0000 - 0x00007ff972974000 	C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.7019_none_3e06ffa0e335b8a8\COMCTL32.dll
+0x00007ff98a690000 - 0x00007ff98a733000 	C:\WINDOWS\System32\msvcp_win.dll
+0x00007ff97e170000 - 0x00007ff97e17b000 	C:\WINDOWS\SYSTEM32\VERSION.dll
+0x00007ff98d2c0000 - 0x00007ff98d2f1000 	C:\WINDOWS\System32\IMM32.DLL
+0x00007ff916940000 - 0x00007ff91694c000 	C:\Program Files\Java\jdk-21\bin\vcruntime140_1.dll
+0x00007ff8bfce0000 - 0x00007ff8bfd6e000 	C:\Program Files\Java\jdk-21\bin\msvcp140.dll
+0x00007ff8c0e10000 - 0x00007ff8c1b2d000 	C:\Program Files\Java\jdk-21\bin\server\jvm.dll
+0x00007ff98b5c0000 - 0x00007ff98b634000 	C:\WINDOWS\System32\WS2_32.dll
+0x00007ff986800000 - 0x00007ff986835000 	C:\WINDOWS\SYSTEM32\WINMM.dll
+0x00007ff9898f0000 - 0x00007ff98994e000 	C:\WINDOWS\SYSTEM32\POWRPROF.dll
+0x00007ff989860000 - 0x00007ff989874000 	C:\WINDOWS\SYSTEM32\UMPDC.dll
+0x00007ff9891b0000 - 0x00007ff9891cb000 	C:\WINDOWS\SYSTEM32\kernel.appcore.dll
+0x00007ff90e560000 - 0x00007ff90e56a000 	C:\Program Files\Java\jdk-21\bin\jimage.dll
+0x00007ff987830000 - 0x00007ff987a72000 	C:\WINDOWS\SYSTEM32\DBGHELP.DLL
+0x00007ff98b6c0000 - 0x00007ff98ba4b000 	C:\WINDOWS\System32\combase.dll
+0x00007ff98bee0000 - 0x00007ff98bfb7000 	C:\WINDOWS\System32\OLEAUT32.dll
+0x00007ff96f680000 - 0x00007ff96f6bc000 	C:\WINDOWS\SYSTEM32\dbgcore.DLL
+0x00007ff98a5e0000 - 0x00007ff98a685000 	C:\WINDOWS\System32\bcryptPrimitives.dll
+0x00007ff8d6a60000 - 0x00007ff8d6a7f000 	C:\Program Files\Java\jdk-21\bin\java.dll
+
+dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
+symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Program Files\Java\jdk-21\bin;C:\WINDOWS\SYSTEM32;C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.7019_none_3e06ffa0e335b8a8;C:\Program Files\Java\jdk-21\bin\server
+
+VM Arguments:
+jvm_args: -Djava.awt.headless=true -Djava.library.path=C:\Program Files\Java\jdk-21\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\Users\Administrator\.trae-cn\binaries\node\versions\22.21.0;c:\Users\Administrator\.trae-cn\sdks\workspaces\031b1510\versions\node\current;c:\Users\Administrator\.trae-cn\sdks\versions\node\current;C:\Program Files\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;E:\Bandizip\;C:\Program Files\dotnet\;C:\Program Files (x86)\dotnet\;C:\Program Files\Common Files\Autodesk Shared\;E:\Git\cmd;C:\Program Files (x86)\Autodesk\Backburner\;C:\Program Files\Sunshine;C:\Program Files\Sunshine\tools;E:\Sunshine;E:\Sunshine\tools;D:\Microsoft VS Code\bin;C:\Program Files\Java\jdk-21\bin;C:\Program Files\Java\jdk-21\jre\bin;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;C:\Program Files\HP\OMEN-Broadcast\Common;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;D:\Microsoft VS Code\bin;C:\Program Files\Java\jdk-21\bin;C:\Program Files\Java\jdk-21\jre\bin;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;;c:\Users\Administrator\.trae-cn\extensions\vscjava.vscode-java-debug-0.58.3-universal\bundled\scripts\noConfigScripts;.;D:\app\YuMoBox\app\src\testRelease\jniLibs;D:\app\YuMoBox\app\src\test\jniLibs -Dorg.gradle.internal.worker.tmpdir=D:\app\YuMoBox\app\build\tmp\testReleaseUnitTest\work --add-opens=java.base/java.io=ALL-UNNAMED -Xmx512m -Dfile.encoding=UTF-8 -Duser.country=CN -Duser.language=zh -Duser.variant -ea 
+java_command: worker.org.gradle.process.internal.worker.GradleWorkerMain 'Gradle Test Executor 2'
+java_class_path (initial): C:\\Users\\Administrator\\.gradle\\caches\\8.13\\workerMain\\gradle-worker.jar;D:\\app\\YuMoBox\\app\\build\\tmp\\kotlin-classes\\releaseUnitTest;D:\\app\\YuMoBox\\app\\build\\tmp\\kapt3\\classes\\releaseUnitTest;D:\\app\\YuMoBox\\app\\build\\intermediates\\java_res\\releaseUnitTest\\processReleaseUnitTestJavaRes\\out;D:\\app\\YuMoBox\\app\\build\\intermediates\\runtime_app_classes_jar\\release\\bundleReleaseClassesToRuntimeJar\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\junit\\junit\\4.13.2\\8ac9e16d933b6fb43bc7f576336b8f4d7eb5ba12\\junit-4.13.2.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\4347ad5ef58173f32fb8fe60f867685e\\transformed\\coil-compose-2.5.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\80b8ab5c8d9fd10eab737ecb1cf53e14\\transformed\\coil-2.5.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\ce54b0559dfb3da3b9a6802b50b13876\\transformed\\coil-gif-2.5.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\8c7bc2e255458dc26efeb5c725f6d19c\\transformed\\coil-compose-base-2.5.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\db87622a6dc6f7e1a9e5e6340fc2fc5b\\transformed\\coil-base-2.5.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\923c1d2357b8a9b72ca4e1efb1d2a8af\\transformed\\appcompat-resources-1.6.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\01a4b858305482eefcf087b58846139e\\transformed\\appcompat-1.6.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c4bd0d80559b536642adc5d898507e36\\transformed\\paging-compose-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\eeb321703b2771b435b52a80356494e5\\transformed\\paging-common-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.paging\\paging-common-ktx\\3.3.2\\2ad14aed781c4a73ed4dbb421966d408a0a06686\\paging-common-ktx-3.3.2.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\789dec9e60e334687eaeb36b84cbf840\\transformed\\paging-runtime-3.3.2-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.room\\room-common\\2.6.1\\ff1b9580850a9b7eef56554e356628d225785265\\room-common-2.6.1.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\009673488ec18b2020b0b640b6c68066\\transformed\\room-runtime-2.6.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\7e9330ee99e6a23bd00ce30389d787d9\\transformed\\work-runtime-ktx-2.9.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\b4bc5cb0d2723df1319b641bd3a9db6a\\transformed\\work-runtime-2.9.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\53e61ee67bace745006bc7a6310d042a\\transformed\\room-ktx-2.6.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d608e01816617653355fe75d75f23cfb\\transformed\\viewpager2-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d51bc8da568ad3bedd7651012639adf3\\transformed\\drawerlayout-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\9440838a5ae576d4518ab3c663403762\\transformed\\okhttp3-integration-4.16.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6bf96ed0645be73fea525c0b62851c42\\transformed\\glide-4.16.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\9b76a94638fdbdaa125d75df2898511e\\transformed\\fragment-1.3.6-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\9eefcca89fd13c6092f0017f4eace582\\transformed\\exoplayer-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3463fbc9623848c5109a89b2860911a1\\transformed\\exoplayer-dash-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3e3da2bafda8fe9748d5c1b840f5fc67\\transformed\\exoplayer-hls-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\e52a3dd42652e1208523021adcf10389\\transformed\\exoplayer-rtsp-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3ed8205ef28a110cb273e674576dbc3e\\transformed\\exoplayer-smoothstreaming-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c91f197ee607110966df62910e58ad86\\transformed\\exoplayer-core-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\796fd27e80ca35389f47e8dce923e40e\\transformed\\exoplayer-ui-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\7a40909980b66a1c80a0cc7fb8abb88f\\transformed\\recyclerview-1.3.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\024db83be0dbee615a93d35582ad3b11\\transformed\\media-1.6.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\ec8e7c532ac852cb0aebd093b416c605\\transformed\\vectordrawable-animated-1.1.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\743c6078c8ac06e240427aa6aa042ff5\\transformed\\vectordrawable-1.1.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\a09e5ae28a4271da02189b470f2d0b1a\\transformed\\material3-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\76946f84f4666fad3cbb941296f3d6e9\\transformed\\animation-core-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3304253b9cb0fad871360debafef273c\\transformed\\material-ripple-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\fa3548b0d7309c03728fe9ac991b51c6\\transformed\\animation-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\9c524ed58d29b21bcabdc78f7ec62c92\\transformed\\foundation-layout-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c9a6a7bd3f74424eaf21f370b618feaf\\transformed\\foundation-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\1a8f47e675e3b1708fcfeec17a9334ed\\transformed\\ui-unit-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6a1910aa57ee8e2055c74a109239c364\\transformed\\ui-geometry-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\07426be806da03bafabd0f58a535e7b0\\transformed\\ui-util-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\462ff59785f2bedd24663951a0ee0eae\\transformed\\ui-text-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\e034a6b6a0a2f68de6e8f33c1e72665e\\transformed\\ui-tooling-preview-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\b63268a8f95b26240ea74f9862015bc9\\transformed\\ui-graphics-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3bf03fef6916c1b9c433247e2741da27\\transformed\\accompanist-drawablepainter-0.32.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\ad33e45f983c6509b7711d3c13f46b33\\transformed\\activity-1.8.2-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\a18a7ea96afede4e576407b942297b8d\\transformed\\activity-ktx-1.8.2-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\ab31efd7e1ca121c987f84f8102764f7\\transformed\\activity-compose-1.8.2-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\807c2e16a08619d86fa0958f09520ab3\\transformed\\material-icons-extended-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\07f80a31a5376c15f598bd83f6bca207\\transformed\\material-icons-core-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\a619a6cfe01310915c60e317a3248d6b\\transformed\\loader-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\eff8ea646d0c1910c4778d43a4f8de5a\\transformed\\emoji2-views-helper-1.3.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\62a71917838922e97178ec4684834092\\transformed\\emoji2-1.3.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3df7215465a9d33b213322e6fa4aca11\\transformed\\savedstate-ktx-1.2.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\75686b39991fe226c9b040f2a049989f\\transformed\\savedstate-1.2.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\0755c393c819701df111827e23df85de\\transformed\\lifecycle-viewmodel-2.8.3-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\5f14369fd6037a9f0d764f8c07a840b5\\transformed\\lifecycle-viewmodel-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.lifecycle\\lifecycle-common-jvm\\2.8.3\\7174a594afb73a9ad9ac9074ce78b94af3cc52a7\\lifecycle-common-jvm-2.8.3.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\ae175dee9bf3a23946c0fc8642251c64\\transformed\\lifecycle-runtime-ktx-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\1d5ebbf22ce72d44c580521003224696\\transformed\\lifecycle-runtime-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\e5ac46a79789385a2766f2b5a3e50cf5\\transformed\\lifecycle-process-2.8.3-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\4ad1c9dd8356995387020de0efc3b0b2\\transformed\\lifecycle-viewmodel-ktx-2.8.3-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\014bb25bbc349f7d935bc8501a19ce06\\transformed\\lifecycle-viewmodel-savedstate-2.8.3-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\022af57d75e48d7ec5e1b6ca04e79ad9\\transformed\\lifecycle-service-2.8.3-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\297e7cf728c9cb5116d2a7c83b626869\\transformed\\lifecycle-livedata-ktx-2.8.3-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\08f3c74240cfcb3877d6b74f14b28f72\\transformed\\lifecycle-livedata-core-ktx-2.8.3-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6b485e5a52d4d27ab182e5920002b925\\transformed\\lifecycle-livedata-core-2.8.3-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c3a1cb855652eef05bcd5827d35cc619\\transformed\\lifecycle-livedata-2.8.3-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.lifecycle\\lifecycle-common-java8\\2.8.3\\2ad14aed781c4a73ed4dbb421966d408a0a06686\\lifecycle-common-java8-2.8.3.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\9e9251aebd1672107639fa11b88f20b8\\transformed\\lifecycle-runtime-compose-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\8472d1e7b54297eb2f0cc1eca4a7a1a8\\transformed\\lifecycle-viewmodel-compose-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c6534908b6030f39093c890c136fb87d\\transformed\\ui-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3da50145f817f2e021ba4bac35f967e0\\transformed\\customview-poolingcontainer-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\973162b137bf906f164a6c147c7e34bb\\transformed\\core-ktx-1.13.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\0f49640d8e8436d63461c0825ff8e72e\\transformed\\viewpager-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\1ecc22d9e6a0a3206de3f1ce66e4b15c\\transformed\\customview-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\f7c31207492d26e7681bdc6ccb13bc22\\transformed\\autofill-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6ee3055e63295e6f3f7f9c5e9fa1f57e\\transformed\\graphics-path-1.0.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\74e66ddf15d243b5347b2a1bb1f6275b\\transformed\\core-1.13.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup.retrofit2\\converter-moshi\\2.11.0\\4f2d4d0eb902e4be4f6a4419a84c7678b9ccd48b\\converter-moshi-2.11.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup.retrofit2\\retrofit\\2.11.0\\6ca8c6caf842271f3232e075519fe04081ef7069\\retrofit-2.11.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup.okhttp3\\logging-interceptor\\4.12.0\\e922c1f14d365c0f2bed140cc0825e18462c2778\\logging-interceptor-4.12.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup.okhttp3\\okhttp\\4.12.0\\2f4525d4a200e97e1b87449c2cd9bd2e25b7e8cd\\okhttp-4.12.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup.moshi\\moshi-kotlin\\1.15.1\\9d76c17766ea84eaa36e9691fe156e702e189f23\\moshi-kotlin-1.15.1.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup.moshi\\moshi\\1.15.1\\753fe8158eae76508bf251afd645101f871680c4\\moshi-1.15.1.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\ef3d6737839e99b41100e0ad4029ec2b\\transformed\\runtime-saveable-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\b6180e2fc51ea0f0500466160663a4c9\\transformed\\runtime-release-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlinx\\kotlinx-coroutines-core-jvm\\1.7.3\\2b09627576f0989a436a00a4a54b55fa5026fb86\\kotlinx-coroutines-core-jvm-1.7.3.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlinx\\kotlinx-coroutines-android\\1.7.3\\38d9cad3a0b03a10453b56577984bdeb48edeed5\\kotlinx-coroutines-android-1.7.3.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib-jdk8\\1.9.10\\c7510d64a83411a649c76f2778304ddf71d7437b\\kotlin-stdlib-jdk8-1.9.10.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d7740a459bcd4836acb0c9fa551f7b76\\transformed\\sqlite-framework-2.4.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\1fcab127bf15d1899e8dba3b390f1c70\\transformed\\sqlite-2.4.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-reflect\\1.8.21\\662838019bc1141f8a311180d93b9e13765c7f55\\kotlin-reflect-1.8.21.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\74924ea07ea5831990e0dca088da5112\\transformed\\annotation-experimental-1.4.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.squareup.okio\\okio-jvm\\3.7.0\\276b999b41f7dcde00054848fc53af338d86b349\\okio-jvm-3.7.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib-jdk7\\1.9.10\\bc5bfc2690338defd5195b05c57562f2194eeb10\\kotlin-stdlib-jdk7-1.9.10.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d811b12b1511b258c870a047d20169a9\\transformed\\versionedparcelable-1.1.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.collection\\collection-ktx\\1.4.0\\2ad14aed781c4a73ed4dbb421966d408a0a06686\\collection-ktx-1.4.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.collection\\collection-jvm\\1.4.0\\e209fb7bd1183032f55a0408121c6251a81acb49\\collection-jvm-1.4.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\ba2cc448ce198b20ffaa72bf70eac348\\transformed\\cursoradapter-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.resourceinspection\\resourceinspection-annotation\\1.0.1\\8c21f8ff5d96d5d52c948707f7e4d6ca6773feef\\resourceinspection-annotation-1.0.1.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d8a48ca2ed5543f12d7f765b9afb95f9\\transformed\\gifdecoder-4.16.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\41026f03c91790f9c8aa46d366254b6d\\transformed\\exifinterface-1.3.6-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\cd1daf3342ce3d74b81bb1cbccd40a2e\\transformed\\profileinstaller-1.3.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\31cf16201cab7c9f0494276d0ad8efb0\\transformed\\startup-runtime-1.1.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\5792f7b3c0fa34cead12c305b7a7f762\\transformed\\tracing-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\e2236f471cbd4b57def759e1ef52adcd\\transformed\\core-runtime-2.2.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\4e41a11d34481d26f4373b62aa062163\\transformed\\exoplayer-datasource-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\62a5093725bfadd6de78b5fb2d7fbdda\\transformed\\exoplayer-database-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\e36394e56d9004b178019236d2d275a2\\transformed\\exoplayer-extractor-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6e0a2b713a0c7c72cf2b9278ee868a69\\transformed\\exoplayer-decoder-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d8d76dce16bf9f15a06b75e9a0a52fea\\transformed\\exoplayer-container-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\22eb806ed13062b2eda3e429e3bc7b38\\transformed\\exoplayer-common-2.19.1-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\e32e4d48284912100c5f86e362425095\\transformed\\interpolator-1.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.arch.core\\core-common\\2.2.0\\5e1b8b81dfd5f52c56a8d53b18ca759c19a301f3\\core-common-2.2.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.concurrent\\concurrent-futures\\1.1.0\\50b7fb98350d5f42a4e49704b03278542293ba48\\concurrent-futures-1.1.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\androidx.annotation\\annotation-jvm\\1.8.1\\b8a16fe526014b7941c1debaccaf9c5153692dbb\\annotation-jvm-1.8.1.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains.kotlin\\kotlin-stdlib\\2.0.21\\618b539767b4899b4660a83006e052b63f1db551\\kotlin-stdlib-2.0.21.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\fb28b7cba29b42a7cbd6996486b051f2\\transformed\\file.core-3.9.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\449eae1c1c169557feea42b2b4b15413\\transformed\\file.selector-3.9.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\8557af6dbff2692e1f6457e884d56fbf\\transformed\\file.compressor-3.9.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\cd9ca2a0945f1ceba9bca2b289748fd3\\transformed\\PhotoView-2.0.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\org.hamcrest\\hamcrest-core\\1.3\\42a25dc3219429f0e5d060061f71acb49bf010a0\\hamcrest-core-1.3.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\org.jetbrains\\annotations\\23.0.0\\8cc20c07506ec18e0834947b84a864bfc094484e\\annotations-23.0.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.github.bumptech.glide\\disklrucache\\4.16.0\\411aa175d50d10b37c7a1a04d21a4e7145249557\\disklrucache-4.16.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.github.bumptech.glide\\annotations\\4.16.0\\90730f6498299d207aa0878124ab7585969808f0\\annotations-4.16.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\a5dbf0bcb33f6f48f59c9c80db00b971\\transformed\\support-core-utils-25.3.0-runtime.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.android.support\\support-annotations\\25.3.0\\dd84903d2e1af25a6081ef9038ad863cb14ca3a0\\support-annotations-25.3.0.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.google.guava\\guava\\31.1-android\\9222c47cc3ae890f07f7c961bbb3cb69050fe4aa\\guava-31.1-android.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.google.guava\\listenablefuture\\9999.0-empty-to-avoid-conflict-with-guava\\b421526c5f297295adef1c886e5246c39d4ac629\\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar;C:\\Users\\Administrator\\.gradle\\caches\\modules-2\\files-2.1\\com.google.guava\\failureaccess\\1.0.1\\1dcf1de382a0bf95a3d8b0849546c88bac1292c9\\failureaccess-1.0.1.jar;D:\\app\\YuMoBox\\app\\build\\intermediates\\java_res\\release\\processReleaseJavaRes\\out;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\503c139f52a738d5cff7390dc657bac3\\transformed\\coil-compose-2.5.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c76ce356c6679a903f5dc905889fa007\\transformed\\coil-2.5.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\19c30334fb98c45145b5199204f69282\\transformed\\coil-gif-2.5.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\5cba03db820b69bb6141dfab3106a461\\transformed\\coil-compose-base-2.5.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\346bf4dfaf115ece77cda4a1f05a8e59\\transformed\\coil-base-2.5.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\fdc57356c313345222d8e80e01224eb5\\transformed\\appcompat-resources-1.6.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\401ca6de0140833afd68922a4005a462\\transformed\\appcompat-1.6.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\30352a0d2c08b882896df2cc80c1384b\\transformed\\paging-compose-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d7a172c46a91ecce4a41fc0d1c763be4\\transformed\\paging-common-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c9fda51db9ba63ad7bdfd274764a9c61\\transformed\\paging-runtime-3.3.2\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\ca90a749104cfe67ded8c12015f7c405\\transformed\\room-runtime-2.6.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\476f0ddef80cb4ee10c921d071a36645\\transformed\\work-runtime-ktx-2.9.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\b520a069016f8a9854715944068d6943\\transformed\\work-runtime-2.9.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\2a3c078aa9280c516a14c2d7674a742b\\transformed\\room-ktx-2.6.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\512c368101ad24b8a454d6ad7197bdef\\transformed\\viewpager2-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\bfa2cdd140cc92da8492b057f284c813\\transformed\\drawerlayout-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\4233e6efed84c65d1d46df10254fce6d\\transformed\\okhttp3-integration-4.16.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6335c45dfa1ffa6b11adcb820ec8238b\\transformed\\glide-4.16.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\9166785bccc4fcd9186123ec17b3a790\\transformed\\fragment-1.3.6\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\586c1c92591e0146d77574d885f6fe4b\\transformed\\exoplayer-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\03e57260349c7d715b831ee12cc925cb\\transformed\\exoplayer-dash-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c8f2902e7c1754b844488898849a75df\\transformed\\exoplayer-hls-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\aa7cb0d1d42b131d4d6fce4a840bd13c\\transformed\\exoplayer-rtsp-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\a2d5717cd928944dada9b8a06c88f104\\transformed\\exoplayer-smoothstreaming-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\5807df9eeb09d9094c7fc20b2f6f4ff2\\transformed\\exoplayer-core-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\68bbd07fc52c122bb68effd1c0745c12\\transformed\\exoplayer-ui-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\5a19f5ee9c4d533e689db5b15603d9f7\\transformed\\recyclerview-1.3.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\57bb71b1c1da5170d0146945f3ced401\\transformed\\media-1.6.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d79dab20635473ed65265116a2ecc3a6\\transformed\\vectordrawable-animated-1.1.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\8dfe3f55e764c23adfad404457cedfb9\\transformed\\vectordrawable-1.1.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\2d5e50faf2a37a791a70831f4a456bef\\transformed\\material3-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\8c12fc20123b0f6745207c6e6fea0bfe\\transformed\\animation-core-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\28d7973b715405d37e4b823b10ca648e\\transformed\\material-ripple-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\94ec94ada3d42bdcfe8554c0ceb636d4\\transformed\\animation-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d16e27ba49b44a86e409cf1f3d1ca63b\\transformed\\foundation-layout-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\9671eeb1111c05c7ddf028c92e001873\\transformed\\foundation-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d21aac4f8886c653982af3cf7b73e728\\transformed\\ui-unit-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6bf7f21c9081e2f7d7e98a2b8128c96b\\transformed\\ui-geometry-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\38bb4c6221cf35b07db3509c350e739a\\transformed\\ui-util-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\b0b7f2e712ed8fea6037cf310b6fd09d\\transformed\\ui-text-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\1fd6003f500b2d07e72e52389a740fcb\\transformed\\ui-tooling-preview-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\7dca7fc79116dca3c7012e2c825e0c2c\\transformed\\ui-graphics-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\f4b2b3f51cc7061b4fc2abda8054a465\\transformed\\accompanist-drawablepainter-0.32.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3cfbf6b54f98546d98c81fc98c465b5d\\transformed\\activity-1.8.2\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\730551ae8627d4711f2611d60ac20abd\\transformed\\activity-ktx-1.8.2\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3f3230d3c7c83b6df1cca796fff31a9f\\transformed\\activity-compose-1.8.2\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6a59784d1c8ed019dfa26a9cc5c0a17c\\transformed\\material-icons-extended-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\0fe679101162da486e07a44283b5e1af\\transformed\\material-icons-core-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\cd38e67e56004fc9212fdd2198d8fa10\\transformed\\loader-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\612b2049d00a739917275d2702b1e730\\transformed\\emoji2-views-helper-1.3.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\011a2afd40195483f77c73c798a11a9f\\transformed\\emoji2-1.3.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\011a2afd40195483f77c73c798a11a9f\\transformed\\emoji2-1.3.0\\jars\\libs\\repackaged.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\72e51629726bbac0e4a0682ef9d1a54d\\transformed\\savedstate-ktx-1.2.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\be2ab61f6cebd5eb9baec7ae52a98cff\\transformed\\savedstate-1.2.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\dce4a677bdb7c6d410774300426ea4f1\\transformed\\lifecycle-viewmodel-2.8.3\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\e32a52313c355e38950cd4f51626b81b\\transformed\\lifecycle-viewmodel-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\78d9417ca33f0a98555c8a71f12bceaf\\transformed\\lifecycle-runtime-ktx-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\1d14449f686b35b6de7fb2b6b9f6fb43\\transformed\\lifecycle-runtime-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3576625e073234ab1a37d3ee9f560fa5\\transformed\\lifecycle-process-2.8.3\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\1716e7fbce7c5ecf29f7a9e176a5798e\\transformed\\lifecycle-viewmodel-ktx-2.8.3\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6fea3e1ace4b2e827bbb14ad24c99ca6\\transformed\\lifecycle-viewmodel-savedstate-2.8.3\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\e32a97c8edc38be1f7101090382fe225\\transformed\\lifecycle-service-2.8.3\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\ebe8d36d830283158a538750b96c58a6\\transformed\\lifecycle-livedata-ktx-2.8.3\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\500adcca0f38ce5a79d57cb6ec359de2\\transformed\\lifecycle-livedata-core-ktx-2.8.3\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\51d9c2e0271ae32debef91fd99d1f660\\transformed\\lifecycle-livedata-core-2.8.3\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\936b08ded5fe436c390cb835b12186ff\\transformed\\lifecycle-livedata-2.8.3\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6968442686f41688c8745c9db752c09d\\transformed\\lifecycle-runtime-compose-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c00f618998d2fcbf882f29804a7580d5\\transformed\\lifecycle-viewmodel-compose-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\9687fba41fb4ac718c7a8487de9a49ab\\transformed\\ui-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\9a7adc6bfbcc207ea548708d6c6ce2e9\\transformed\\customview-poolingcontainer-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\6a4c58c8ad50156467b68aca42f27012\\transformed\\core-ktx-1.13.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\5661d5dc16b96c4fd63c3b9dd64e4f79\\transformed\\viewpager-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\1faa420aa19ee93036a90a4fcc445246\\transformed\\customview-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\03b38d9254c2d157d193df8bab44aaf2\\transformed\\autofill-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\8a83e99c8d59d4e67e7a464c24ce2226\\transformed\\graphics-path-1.0.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3c5c293d0723bd43dc3cce36a71fa3fa\\transformed\\core-1.13.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\f180bc10d0f1d97fc5599b1160151028\\transformed\\runtime-saveable-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\060bcea14d1e78f8078a6da415886e15\\transformed\\runtime-release\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\f5e0b136069358ed3d8bc24de1c26b2f\\transformed\\sqlite-framework-2.4.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\4143a59eb2a943968122ad8184654027\\transformed\\sqlite-2.4.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\fbadf38a440a07143e9f82849195af41\\transformed\\annotation-experimental-1.4.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d10a517adba04b040fd1e7867e110932\\transformed\\versionedparcelable-1.1.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\050bd709f466cde87c2ffcb8865e58e6\\transformed\\cursoradapter-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\c322b6d269eb23dd7ec9e687fc1284f5\\transformed\\gifdecoder-4.16.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\afa83a65b49c32e9a08286a18a63fe5d\\transformed\\exifinterface-1.3.6\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\e2ba34bdd559c4a4c10cc71b73f16fe3\\transformed\\profileinstaller-1.3.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\3f0e3d5c07114bde1d55b201ce17d565\\transformed\\startup-runtime-1.1.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\42aae141e7ca79b5f265336b86ca9d0e\\transformed\\tracing-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\548f7c2f9759833d5d9ca20b9d886737\\transformed\\core-runtime-2.2.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d61d666a5912c50f0a8033c6d3b12fda\\transformed\\exoplayer-datasource-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\85d524010976d9e389b80eba0adcf362\\transformed\\exoplayer-database-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\16758613b2c0e9629c76f641de0e4b6f\\transformed\\exoplayer-extractor-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\4f8fe8e511a91a0b223e2227d1658ba4\\transformed\\exoplayer-decoder-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\d86342fd877804ace50809abc3dbb6dd\\transformed\\exoplayer-container-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\2bb70011bf3dd9f121e9720eb493ea85\\transformed\\exoplayer-common-2.19.1\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\4f49eacce333ffbbfd129a94e466d86a\\transformed\\interpolator-1.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\137bfbc3b334ed889a67c38b2777c77b\\transformed\\file.core-3.9.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\32e4df3a1d291ed704ce3c215f08011e\\transformed\\file.selector-3.9.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\17f060f1f4f034f31aa1f6c54aa056eb\\transformed\\file.compressor-3.9.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\b6ad92237c70cd28edc4e91b5d28e538\\transformed\\PhotoView-2.0.0\\jars\\classes.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\230eea2cd1adfa9d04dc7fcd695906fc\\transformed\\support-core-utils-25.3.0\\jars\\classes.jar;D:\\app\\YuMoBox\\app\\build\\intermediates\\compile_and_runtime_not_namespaced_r_class_jar\\release\\processReleaseResources\\R.jar;C:\\Users\\Administrator\\.gradle\\caches\\8.13\\transforms\\709304b00ee22fc33ba31994259ddfe0\\transformed\\android.jar
+Launcher Type: SUN_STANDARD
+
+[Global flags]
+     intx CICompilerCount                          = 12                                        {product} {ergonomic}
+     uint ConcGCThreads                            = 4                                         {product} {ergonomic}
+     uint G1ConcRefinementThreads                  = 15                                        {product} {ergonomic}
+   size_t G1HeapRegionSize                         = 1048576                                   {product} {ergonomic}
+    uintx GCDrainStackTargetSize                   = 64                                        {product} {ergonomic}
+   size_t InitialHeapSize                          = 264241152                                 {product} {ergonomic}
+   size_t MarkStackSize                            = 4194304                                   {product} {ergonomic}
+   size_t MaxHeapSize                              = 536870912                                 {product} {command line}
+   size_t MinHeapDeltaBytes                        = 1048576                                   {product} {ergonomic}
+   size_t MinHeapSize                              = 8388608                                   {product} {ergonomic}
+    uintx NonNMethodCodeHeapSize                   = 7602480                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122027880                              {pd product} {ergonomic}
+    uintx ProfiledCodeHeapSize                     = 122027880                              {pd product} {ergonomic}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+   size_t SoftMaxHeapSize                          = 536870912                              {manageable} {ergonomic}
+     bool UseCompressedOops                        = true                           {product lp64_product} {ergonomic}
+     bool UseG1GC                                  = true                                      {product} {ergonomic}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {ergonomic}
+
+Logging:
+Log output configuration:
+ #0: stdout all=warning uptime,level,tags foldmultilines=false
+ #1: stderr all=off uptime,level,tags foldmultilines=false
+
+Environment Variables:
+JAVA_HOME=C:\Program Files\Java\jdk-21
+CLASSPATH=D:\app\YuMoBox\\gradle\wrapper\gradle-wrapper.jar
+PATH=C:\Users\Administrator\.trae-cn\binaries\node\versions\22.21.0;c:\Users\Administrator\.trae-cn\sdks\workspaces\031b1510\versions\node\current;c:\Users\Administrator\.trae-cn\sdks\versions\node\current;C:\Program Files\Common Files\Oracle\Java\javapath;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;E:\Bandizip\;C:\Program Files\dotnet\;C:\Program Files (x86)\dotnet\;C:\Program Files\Common Files\Autodesk Shared\;E:\Git\cmd;C:\Program Files (x86)\Autodesk\Backburner\;C:\Program Files\Sunshine;C:\Program Files\Sunshine\tools;E:\Sunshine;E:\Sunshine\tools;D:\Microsoft VS Code\bin;C:\Program Files\Java\jdk-21\bin;C:\Program Files\Java\jdk-21\jre\bin;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;C:\Program Files\HP\OMEN-Broadcast\Common;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;D:\Microsoft VS Code\bin;C:\Program Files\Java\jdk-21\bin;C:\Program Files\Java\jdk-21\jre\bin;C:\Users\Administrator\AppData\Local\Microsoft\WindowsApps;;c:\Users\Administrator\.trae-cn\extensions\vscjava.vscode-java-debug-0.58.3-universal\bundled\scripts\noConfigScripts
+USERNAME=Administrator
+LANG=zh_CN.UTF-8
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 191 Stepping 2, GenuineIntel
+TMP=C:\Users\ADMINI~1\AppData\Local\Temp
+TEMP=C:\Users\ADMINI~1\AppData\Local\Temp
+
+
+
+
+Periodic native trim disabled
+
+---------------  S Y S T E M  ---------------
+
+OS:
+ Windows 11 , 64 bit Build 26100 (10.0.26100.7019)
+OS uptime: 1 days 2:26 hours
+Hyper-V role detected
+
+CPU: total 20 (initial active 20) (10 cores per cpu, 2 threads per core) family 6 model 191 stepping 2 microcode 0x37, cx8, cmov, fxsr, ht, mmx, 3dnowpref, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, lzcnt, tsc, tscinvbit, avx, avx2, aes, erms, clmul, bmi1, bmi2, adx, sha, fma, vzeroupper, clflush, clflushopt, clwb, hv, serialize, rdtscp, rdpid, fsrm, f16c, cet_ibt, cet_ss
+Processor Information for processor 0
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 1
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 2
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 3
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 4
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 5
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 6
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 7
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 8
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 9
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 10
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 11
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 12
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 13
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 14
+  Max Mhz: 2500, Current Mhz: 1527, Mhz Limit: 2500
+Processor Information for processor 15
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 16
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 17
+  Max Mhz: 2500, Current Mhz: 1527, Mhz Limit: 2500
+Processor Information for processor 18
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+Processor Information for processor 19
+  Max Mhz: 2500, Current Mhz: 2500, Mhz Limit: 2500
+
+Memory: 4k page, system-wide physical 16077M (473M free)
+TotalPageFile size 37823M (AvailPageFile size 180M)
+current process WorkingSet (physical memory assigned to process): 12M, peak: 12M
+current process commit charge ("private bytes"): 74M, peak: 326M
+
+vm_info: Java HotSpot(TM) 64-Bit Server VM (21.0.9+7-LTS-338) for windows-amd64 JRE (21.0.9+7-LTS-338), built on 2025-09-26T06:33:49Z by "mach5run" with MS VC++ 17.6 (VS2022)
+
+END.
