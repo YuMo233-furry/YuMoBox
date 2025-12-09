@@ -34,6 +34,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.Dp
 import androidx.compose.material.icons.filled.Close
@@ -187,6 +188,7 @@ private fun TagManagerContent(
     val tags by viewModel.tagsFlow.collectAsState(initial = emptyList())
     var searchQuery by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
     
     // 重置确认对话框状态
     var showResetConfirmationDialog by remember { mutableStateOf(false) }
@@ -258,6 +260,19 @@ private fun TagManagerContent(
                         change.consume()
                         coroutineScope.launch {
                             dragChannel.send(dragAmount)
+                        }
+                    }
+                )
+            }
+            .pointerInput(searchQuery) {
+                detectTapGestures(
+                    onPress = {
+                        if (searchQuery.isEmpty()) {
+                            focusManager.clearFocus(force = false)
+                        }
+                        try {
+                            awaitRelease()
+                        } catch (_: Throwable) {
                         }
                     }
                 )
