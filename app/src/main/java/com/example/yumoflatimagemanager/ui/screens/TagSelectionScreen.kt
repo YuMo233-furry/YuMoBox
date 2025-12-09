@@ -56,6 +56,9 @@ fun TagSelectionScreen(
 ) {
     var tags by remember { mutableStateOf<List<TagWithChildren>>(emptyList()) }
     var searchQuery by remember { mutableStateOf("") }
+    val tagViewModel = viewModel?.tagViewModel
+    val selectedTagGroupId by remember { derivedStateOf { tagViewModel?.selectedTagGroupId } }
+    var currentGroupTagIds by remember { mutableStateOf<Set<Long>>(emptySet()) }
     
     // 处理系统返回键
     BackHandler {
@@ -70,6 +73,16 @@ fun TagSelectionScreen(
             }
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    // 缓存当前选中标签组的标签ID集合，避免在组合中直接调用挂起函数
+    LaunchedEffect(selectedTagGroupId, tags) {
+        if (selectedTagGroupId == null) {
+            currentGroupTagIds = emptySet()
+        } else if (viewModel != null) {
+            val groupTags = viewModel.getTagsByTagGroupId(selectedTagGroupId!!, tags)
+            currentGroupTagIds = groupTags.map { it.tag.id }.toSet()
         }
     }
     
@@ -155,11 +168,25 @@ fun TagSelectionScreen(
                 }
 
                 // 过滤（支持匹配任意子孙）
-                val filteredWithRefs = remember(withRefs, searchQuery) {
-                    if (searchQuery.isBlank()) withRefs else withRefs.filter { matchesTree(it, searchQuery) }
-                }
-                val filteredWithoutRefs = remember(withoutRefs, searchQuery) {
-                    if (searchQuery.isBlank()) withoutRefs else withoutRefs.filter { matchesTree(it, searchQuery) }
+                // 过滤与排序：无搜索时按当前分组过滤；有搜索时跨组搜索并优先当前分组
+                val (filteredWithRefs, filteredWithoutRefs) = remember(
+                    withRefs, withoutRefs, searchQuery, selectedTagGroupId, currentGroupTagIds
+                ) {
+                    if (searchQuery.isBlank()) {
+                        val filtered = if (selectedTagGroupId == null) tags else {
+                            tags.filter { currentGroupTagIds.contains(it.tag.id) }
+                        }
+                        splitByRefs(filtered)
+                    } else {
+                        // 跨组搜索
+                        val matched = tags.filter { matchesTree(it, searchQuery) }
+                        val inGroupIds = if (selectedTagGroupId == null) emptySet<Long>() else currentGroupTagIds
+                        val sorted = matched.sortedWith(
+                            compareBy<TagWithChildren> { !inGroupIds.contains(it.tag.id) }
+                                .thenBy { it.tag.name.lowercase() }
+                        )
+                        splitByRefs(sorted)
+                    }
                 }
 
                 // 自动展开包含匹配子项的父节点
@@ -903,6 +930,18 @@ private fun TagSelectionLeafItemWithGrayText(
             )
         }
     }
+}
+
+// 工具：按是否有引用分组并保持原有排序规则
+private fun splitByRefs(list: List<TagWithChildren>): Pair<List<TagWithChildren>, List<TagWithChildren>> {
+    val withRefs = mutableListOf<TagWithChildren>()
+    val withoutRefs = mutableListOf<TagWithChildren>()
+    list.forEach { twc ->
+        if (twc.referencedTags.isNotEmpty()) withRefs.add(twc) else withoutRefs.add(twc)
+    }
+    withRefs.sortWith(compareBy({ it.tag.referencedGroupSortOrder }, { it.tag.name }))
+    withoutRefs.sortWith(compareBy({ it.tag.normalGroupSortOrder }, { it.tag.name }))
+    return Pair(withRefs, withoutRefs)
 }
 
 // 工具：树匹配（名称包含任一层）
