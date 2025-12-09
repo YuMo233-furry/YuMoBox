@@ -59,10 +59,6 @@ fun TagGroupNavigationBar(
         derivedStateOf { tagViewModel.selectedTagGroupId }
     }
     
-    // 双击检测状态
-    var lastClickTime by remember { mutableStateOf(0L) }
-    val DOUBLE_CLICK_DELAY = 300L
-    
     // 新建标签组对话框状态
     var showCreateDialog by remember { mutableStateOf(false) }
     var newGroupName by remember { mutableStateOf("") }
@@ -95,12 +91,15 @@ fun TagGroupNavigationBar(
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 // 横向滚动的标签组列表 - 占据大部分宽度
                 val rowState = rememberLazyListState()
-                // 自动定位到选中项
+                // 跟踪是否已执行过初始定位
+                var hasInitialized by remember { mutableStateOf(false) }
+                // 自动定位到选中项 - 仅在首次加载时执行一次
                 LaunchedEffect(selectedTagGroupId, tagGroups) {
-                    if (selectedTagGroupId != null) {
+                    if (!hasInitialized && selectedTagGroupId != null && tagGroups.isNotEmpty()) {
                         val targetIndex = tagGroups.indexOfFirst { it.id == selectedTagGroupId }
                         if (targetIndex >= 0) {
                             rowState.animateScrollToItem(targetIndex)
+                            hasInitialized = true
                         }
                     }
                 }
@@ -116,52 +115,48 @@ fun TagGroupNavigationBar(
                             tagGroup = it,
                             isSelected = it.id == selectedTagGroupId,
                             onClick = {
-                                val currentTime = System.currentTimeMillis()
-                                if (currentTime - lastClickTime < DOUBLE_CLICK_DELAY) {
-                                    // 双击：打开标签组编辑对话框
-                                    // 检查是否为默认标签组，如果是则不允许编辑
-                                    if (it.isDefault) {
-                                        // 不允许编辑默认标签组
-                                        return@TagGroupItem
-                                    }
-                                    
-                                    selectedTagGroup = it
-                                    renameGroupName = it.name
-                                    
-                                    // 加载所有标签和当前标签组中的标签
-                                    coroutineScope.launch {
-                                        try {
-                                            // 加载所有标签
-                                            val tagsWithChildren = viewModel.tagsFlow.first()
-                                            val tagEntities = mutableListOf<TagEntity>()
-                                            
-                                            // 收集所有本体标签
-                                            tagsWithChildren.forEach { tagWithChild ->
-                                                tagEntities.add(tagWithChild.tag)
-                                            }
-                                            
-                                            // 去重并排序
-                                            allTags = tagEntities.distinctBy { it.id }.sortedBy { it.name }
-                                            
-                                            // 加载当前标签组中的标签
-                                            val tagsInGroup = tagViewModel.getTagsByTagGroupId(it.id)
-                                            val tagIdsInGroup = tagsInGroup.map { it.id }.toSet()
-                                            selectedTags = tagIdsInGroup
-                                            println("DEBUG: 加载标签组 ${it.id} 中的标签: $tagIdsInGroup")
-                                        } catch (e: Exception) {
-                                            // 处理异常
-                                            println("ERROR: 加载标签组标签失败 - 标签组ID: ${it.id}, 错误: ${e.message}")
-                                            allTags = emptyList()
-                                            selectedTags = emptySet()
-                                        }
-                                    }
-                                    showRenameDialog = true
-                                } else {
-                                    // 单击：切换标签组
-                                    // 实现未选中功能：重复点击已选中标签组进入未选择状态
-                                    tagViewModel.selectTagGroup(it.id)
+                                // 单击：切换标签组
+                                tagViewModel.selectTagGroup(it.id)
+                            },
+                            onDoubleClick = {
+                                // 双击：打开标签组编辑对话框
+                                // 检查是否为默认标签组，如果是则不允许编辑
+                                if (it.isDefault) {
+                                    // 不允许编辑默认标签组
+                                    return@TagGroupItem
                                 }
-                                lastClickTime = currentTime
+                                
+                                selectedTagGroup = it
+                                renameGroupName = it.name
+                                
+                                // 加载所有标签和当前标签组中的标签
+                                coroutineScope.launch {
+                                    try {
+                                        // 加载所有标签
+                                        val tagsWithChildren = viewModel.tagsFlow.first()
+                                        val tagEntities = mutableListOf<TagEntity>()
+                                        
+                                        // 收集所有本体标签
+                                        tagsWithChildren.forEach { tagWithChild ->
+                                            tagEntities.add(tagWithChild.tag)
+                                        }
+                                        
+                                        // 去重并排序
+                                        allTags = tagEntities.distinctBy { it.id }.sortedBy { it.name }
+                                        
+                                        // 加载当前标签组中的标签
+                                        val tagsInGroup = tagViewModel.getTagsByTagGroupId(it.id)
+                                        val tagIdsInGroup = tagsInGroup.map { it.id }.toSet()
+                                        selectedTags = tagIdsInGroup
+                                        println("DEBUG: 加载标签组 ${it.id} 中的标签: $tagIdsInGroup")
+                                    } catch (e: Exception) {
+                                        // 处理异常
+                                        println("ERROR: 加载标签组标签失败 - 标签组ID: ${it.id}, 错误: ${e.message}")
+                                        allTags = emptyList()
+                                        selectedTags = emptySet()
+                                    }
+                                }
+                                showRenameDialog = true
                             }
                         )
                     }
