@@ -5,14 +5,12 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.*
 import androidx.compose.foundation.lazy.grid.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -20,27 +18,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.DpSize
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.unit.toSize
-import androidx.compose.ui.zIndex
 import com.example.yumoflatimagemanager.MainViewModel
 import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagGroupEntity
 import com.example.yumoflatimagemanager.feature.tag.TagViewModelNew
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
+import sh.calvin.reorderable.ReorderableItem
+import sh.calvin.reorderable.ReorderableCollectionItemScope
+import sh.calvin.reorderable.rememberReorderableLazyGridState
 
 /**
  * 标签组导航栏组件
@@ -84,10 +80,6 @@ fun TagGroupNavigationBar(
     // 标签组管理展开状态
     var isManagementExpanded by remember { mutableStateOf(false) }
     
-    // 标签组拖拽排序状态
-    var draggedItemIndex by remember { mutableStateOf<Int?>(null) }
-    var tagGroupsState by remember { mutableStateOf(tagGroups) }
-    
     // 协程作用域
     val coroutineScope = rememberCoroutineScope()
     
@@ -96,11 +88,6 @@ fun TagGroupNavigationBar(
         targetValue = if (isManagementExpanded) 180f else 0f,
         animationSpec = tween(durationMillis = 300)
     )
-    
-    // 监听标签组变化，更新tagGroupsState
-    LaunchedEffect(tagGroups) {
-        tagGroupsState = tagGroups
-    }
     
     Box(modifier = modifier) {
         Column {
@@ -221,7 +208,6 @@ fun TagGroupNavigationBar(
                     .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f))
                     .border(width = 1.dp, color = MaterialTheme.colorScheme.outlineVariant)
                     .padding(16.dp)
-                    .zIndex(1f)
             ) {
                 Column {
                     // 标题
@@ -233,157 +219,50 @@ fun TagGroupNavigationBar(
                     )
                     
                     // 平铺显示所有标签组，支持拖拽排序
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.height(300.dp)
-                    ) {
-                        itemsIndexed(tagGroupsState) { index, tagGroup ->
-                            // 拖动相关状态
-                            var offset by remember { mutableStateOf(Offset.Zero) }
-                            val isDragging = draggedItemIndex == index
-                            
-                            val dragModifier = if (isDragging) {
-                                // 拖动中的元素，添加跟随效果
-                                Modifier
-                                    // 拖动时提高层级
-                                    .zIndex(1f)
-                                    // 跟随手指移动，使用像素单位
-                                    .offset {
-                                        IntOffset(offset.x.toInt(), offset.y.toInt())
-                                    }
-                                    // 拖动中的样式
-                                    .clip(MaterialTheme.shapes.medium)
-                                    .background(MaterialTheme.colorScheme.primaryContainer)
-                                    .border(width = 2.dp, color = MaterialTheme.colorScheme.primary, shape = MaterialTheme.shapes.medium)
-                            } else {
-                                Modifier
-                                    .zIndex(0f)
-                            }
-                            
-                            Box(
-                                modifier = Modifier
-                                    .then(dragModifier)
-                                    // 指针输入处理
-                                    .pointerInput(tagGroup) {
-                                        // 长按后直接拖动排序
-                                        detectDragGesturesAfterLongPress(
-                                            onDragStart = {
-                                                draggedItemIndex = index
-                                                offset = Offset.Zero
-                                            },
-                                            onDrag = { change, dragAmount ->
-                                                change.consume()
-                                                if (draggedItemIndex != null) {
-                                                    // 更新拖拽偏移量
-                                                    offset += dragAmount
-                                                    
-                                                    // 计算拖拽元素当前位置对应的网格索引，实现实时避让
-                                                    val columns = 3
-                                                    val itemsPerRow = columns
-                                                    
-                                                    // 计算每个网格项的尺寸
-                                                    val itemWidth = size.width.toFloat()
-                                                    val itemHeight = size.height.toFloat()
-                                                    val itemSpacing = 12.dp.toPx()
-                                                    
-                                                    // 计算拖拽元素的绝对位置（相对于容器）
-                                                    val absoluteX = offset.x + (size.width.toFloat() / 2)
-                                                    val absoluteY = offset.y + (size.height.toFloat() / 2)
-                                                    
-                                                    // 计算当前位置对应的网格坐标
-                                                    val currentCol = (absoluteX / (itemWidth + itemSpacing)).toInt()
-                                                    val currentRow = (absoluteY / (itemHeight + itemSpacing)).toInt()
-                                                    
-                                                    // 计算当前网格位置对应的索引
-                                                    var newIndex = currentRow * itemsPerRow + currentCol
-                                                    
-                                                    // 确保新索引在有效范围内
-                                                    newIndex = newIndex.coerceIn(0, tagGroupsState.size - 1)
-                                                    
-                                                    // 只在索引变化时更新标签组顺序，实现实时避让
-                                                    if (newIndex != draggedItemIndex) {
-                                                        val reorderedGroups = tagGroupsState.toMutableList()
-                                                        val movedGroup = reorderedGroups.removeAt(draggedItemIndex!!)
-                                                        reorderedGroups.add(newIndex, movedGroup)
-                                                        
-                                                        // 更新本地状态，实现实时避让效果
-                                                        tagGroupsState = reorderedGroups
-                                                        
-                                                        // 更新拖拽元素的索引，确保后续计算正确
-                                                        draggedItemIndex = newIndex
-                                                    }
-                                                }
-                                            },
-                                            onDragEnd = {
-                                                if (draggedItemIndex != null) {
-                                                    // 使用协程异步更新数据库，避免UI卡顿
-                                                    coroutineScope.launch(Dispatchers.IO) {
-                                                        tagViewModel.reorderTagGroups(tagGroupsState)
-                                                    }
-                                                }
-                                                
-                                                // 重置状态
-                                                offset = Offset.Zero
-                                                draggedItemIndex = null
-                                            },
-                                            onDragCancel = {
-                                                // 拖拽取消，重置状态
-                                                offset = Offset.Zero
-                                                draggedItemIndex = null
-                                            }
-                                        )
-                                    }
-                            ) {
-                                TagGroupItem(
-                                    tagGroup = tagGroup,
-                                    isSelected = tagGroup.id == selectedTagGroupId,
-                                    onClick = {
-                                        // 单击：切换标签组，但不关闭管理视图
-                                        tagViewModel.selectTagGroup(tagGroup.id)
-                                    },
-                                    onDoubleClick = {
-                                        // 双击：打开标签组编辑对话框
-                                        // 检查是否为默认标签组，如果是则不允许编辑
-                                        if (!tagGroup.isDefault) {
-                                            selectedTagGroup = tagGroup
-                                            renameGroupName = tagGroup.name
-                                            
-                                            // 加载所有标签和当前标签组中的标签
-                                            coroutineScope.launch {
-                                                try {
-                                                    // 加载所有标签
-                                                    val tagsWithChildren = viewModel.tagsFlow.first()
-                                                    val tagEntities = mutableListOf<TagEntity>()
-                                                    
-                                                    // 收集所有本体标签
-                                                    tagsWithChildren.forEach { tagWithChild ->
-                                                        tagEntities.add(tagWithChild.tag)
-                                                    }
-                                                    
-                                                    // 去重并排序
-                                                    allTags = tagEntities.distinctBy { it.id }.sortedBy { it.name }
-                                                    
-                                                    // 加载当前标签组中的标签
-                                                    val tagsInGroup = tagViewModel.getTagsByTagGroupId(tagGroup.id)
-                                                    val tagIdsInGroup = tagsInGroup.map { it.id }.toSet()
-                                                    selectedTags = tagIdsInGroup
-                                                    println("DEBUG: 加载标签组 ${tagGroup.id} 中的标签: $tagIdsInGroup")
-                                                } catch (e: Exception) {
-                                                    // 处理异常
-                                                    println("ERROR: 加载标签组标签失败 - 标签组ID: ${tagGroup.id}, 错误: ${e.message}")
-                                                    allTags = emptyList()
-                                                    selectedTags = emptySet()
-                                                }
-                                            }
-                                            showRenameDialog = true
+                    ReorderableTagGroupGrid(
+                        tagGroups = tagGroups,
+                        tagViewModel = tagViewModel,
+                        selectedTagGroupId = selectedTagGroupId,
+                        onTagGroupClick = { tagGroup ->
+                            tagViewModel.selectTagGroup(tagGroup.id)
+                        },
+                        onTagGroupDoubleClick = { tagGroup ->
+                            if (!tagGroup.isDefault) {
+                                selectedTagGroup = tagGroup
+                                renameGroupName = tagGroup.name
+                                
+                                // 加载所有标签和当前标签组中的标签
+                                coroutineScope.launch {
+                                    try {
+                                        // 加载所有标签
+                                        val tagsWithChildren = viewModel.tagsFlow.first()
+                                        val tagEntities = mutableListOf<TagEntity>()
+                                        
+                                        // 收集所有本体标签
+                                        tagsWithChildren.forEach { tagWithChild ->
+                                            tagEntities.add(tagWithChild.tag)
                                         }
+                                        
+                                        // 去重并排序
+                                        allTags = tagEntities.distinctBy { it.id }.sortedBy { it.name }
+                                        
+                                        // 加载当前标签组中的标签
+                                        val tagsInGroup = tagViewModel.getTagsByTagGroupId(tagGroup.id)
+                                        val tagIdsInGroup = tagsInGroup.map { it.id }.toSet()
+                                        selectedTags = tagIdsInGroup
+                                        println("DEBUG: 加载标签组 ${tagGroup.id} 中的标签: $tagIdsInGroup")
+                                    } catch (e: Exception) {
+                                        // 处理异常
+                                        println("ERROR: 加载标签组标签失败 - 标签组ID: ${tagGroup.id}, 错误: ${e.message}")
+                                        allTags = emptyList()
+                                        selectedTags = emptySet()
                                     }
-                                )
+                                }
+                                showRenameDialog = true
                             }
-                        }
-                    }
+                        },
+                        modifier = Modifier.height(300.dp)
+                    )
                 }
             }
         }
@@ -575,6 +454,93 @@ fun TagGroupNavigationBar(
 }
 
 /**
+ * 可拖拽排序的标签组网格
+ */
+@Composable
+private fun ReorderableTagGroupGrid(
+    tagGroups: List<TagGroupEntity>,
+    tagViewModel: TagViewModelNew,
+    selectedTagGroupId: Long?,
+    onTagGroupClick: (TagGroupEntity) -> Unit,
+    onTagGroupDoubleClick: (TagGroupEntity) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val gridState = rememberLazyGridState()
+    val coroutineScope = rememberCoroutineScope()
+    
+    // 本地状态管理标签组列表，避免拖拽时的数据流更新导致抖动
+    var localTagGroups by remember(tagGroups) { mutableStateOf(tagGroups) }
+    
+    // Channel 用于同步数据库更新
+    val listUpdatedChannel = remember { Channel<Unit>(Channel.CONFLATED) }
+    
+    // 创建 Reorderable 状态
+    val reorderableState = rememberReorderableLazyGridState(gridState) { from, to ->
+        // 确保索引在有效范围内
+        if (from.index in localTagGroups.indices && to.index in localTagGroups.indices) {
+            // 立即更新本地状态（同步操作，避免抖动）
+            val newTagGroups = localTagGroups.toMutableList().apply {
+                add(to.index, removeAt(from.index))
+            }
+            localTagGroups = newTagGroups
+            
+            // 异步更新数据库
+            coroutineScope.launch {
+                tagViewModel.reorderTagGroups(localTagGroups)
+                
+                // 通知数据库更新完成
+                listUpdatedChannel.send(Unit)
+            }
+        }
+    }
+    
+    // 监听数据流更新，使用 Channel 同步
+    LaunchedEffect(tagGroups) {
+        // 如果本地状态的标签组ID顺序和 tagGroups 不同，说明有外部更新
+        val localTagGroupIds = localTagGroups.map { it.id }
+        val newTagGroupIds = tagGroups.map { it.id }
+        
+        if (localTagGroupIds != newTagGroupIds) {
+            // 等待数据库更新完成（如果有正在进行的更新）
+            // 使用 withTimeoutOrNull 避免无限等待
+            withTimeoutOrNull(100) {
+                listUpdatedChannel.receive()
+            }
+            
+            // 更新本地状态
+            localTagGroups = tagGroups
+        }
+    }
+    
+    LazyVerticalGrid(
+        state = gridState,
+        columns = GridCells.Fixed(3),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier
+    ) {
+        items(
+            items = localTagGroups,
+            key = { tagGroup -> tagGroup.id }
+        ) { tagGroup ->
+            ReorderableItem(
+                reorderableState,
+                key = tagGroup.id
+            ) { isDragging ->
+                TagGroupItem(
+                    tagGroup = tagGroup,
+                    isSelected = tagGroup.id == selectedTagGroupId,
+                    onClick = { onTagGroupClick(tagGroup) },
+                    onDoubleClick = { onTagGroupDoubleClick(tagGroup) },
+                    isDragging = isDragging,
+                    reorderableScope = this
+                )
+            }
+        }
+    }
+}
+
+/**
  * 单个标签组项组件
  */
 @Composable
@@ -582,11 +548,15 @@ private fun TagGroupItem(
     tagGroup: TagGroupEntity,
     isSelected: Boolean,
     onClick: () -> Unit,
-    onDoubleClick: (() -> Unit)? = null
+    onDoubleClick: (() -> Unit)? = null,
+    isDragging: Boolean = false,
+    reorderableScope: ReorderableCollectionItemScope? = null
 ) {
     // 双击检测状态
     var lastClickTime by remember { mutableStateOf(0L) }
     val DOUBLE_CLICK_DELAY = 300L
+    
+    val hapticFeedback = LocalHapticFeedback.current
     
     Box(
         modifier = Modifier
@@ -604,7 +574,16 @@ private fun TagGroupItem(
             )
             // 适当的内边距
             .padding(horizontal = 16.dp, vertical = 10.dp)
-            // 自适应宽度，根据内容自动调整
+            // 长按拖拽手柄（仅在管理页面启用）
+            .then(
+                if (reorderableScope != null) {
+                    with(reorderableScope) {
+                        Modifier.longPressDraggableHandle()
+                    }
+                } else {
+                    Modifier
+                }
+            )
             // 点击处理
             .clickable {
                 val currentTime = System.currentTimeMillis()

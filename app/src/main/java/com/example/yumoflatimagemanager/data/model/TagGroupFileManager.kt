@@ -247,7 +247,11 @@ object TagGroupFileManager {
             tagGroupData?.let { allTagGroups.add(it) }
         }
         
-        return allTagGroups
+        // 按 sortOrder 排序，确保默认标签组始终排在第一位
+        return allTagGroups.sortedWith(compareBy(
+            { !it.isDefault }, // 默认标签组排在前面（false < true）
+            { it.sortOrder }   // 然后按 sortOrder 排序
+        ))
     }
     
     /**
