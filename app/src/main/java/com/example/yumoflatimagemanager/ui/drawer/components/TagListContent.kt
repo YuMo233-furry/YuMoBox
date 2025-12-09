@@ -1,11 +1,13 @@
 package com.example.yumoflatimagemanager.ui.drawer.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -41,155 +43,209 @@ fun TagListContent(
         filteredTags.filter { it.referencedTags.isEmpty() }
     }
     
-    Column(modifier = modifier) {
-        if (filteredTags.isEmpty()) {
-                Text(
-                    text = "暂无标签",
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(8.dp)
-                )
-        } else {
-            // 有引用标签组
-            if (tagsWithReferences.isNotEmpty()) {
-                ReorderableTagGroup(
-                    tags = tagsWithReferences,
-                            viewModel = viewModel,
-                    isWithReferences = true,
-                            onMove = { fromIndex, toIndex ->
-                        viewModel.moveTagInGroup(fromIndex, toIndex, true)
-                    }
-                )
-                }
-                
-            // 分隔线
-                if (tagsWithReferences.isNotEmpty() && tagsWithoutReferences.isNotEmpty()) {
-                        HorizontalDivider(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 8.dp),
-                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                            thickness = 1.dp
-                        )
-                    }
-                
-            // 无引用标签组
-            if (tagsWithoutReferences.isNotEmpty()) {
-                ReorderableTagGroup(
-                    tags = tagsWithoutReferences,
-                    viewModel = viewModel,
-                    isWithReferences = false,
-                    onMove = { fromIndex, toIndex ->
-                        viewModel.moveTagInGroup(fromIndex, toIndex, false)
-                        }
-                )
-            }
-        }
-    }
+    // 单一纵向滚动容器，内含上下两个分区（有引用 / 无引用）
+    ReorderableSectionedTagList(
+        viewModel = viewModel,
+        modifier = modifier,
+        tagsWithReferences = tagsWithReferences,
+        tagsWithoutReferences = tagsWithoutReferences
+    )
 }
 
-/**
- * 可拖拽排序的标签组
- */
 @Composable
-private fun ReorderableTagGroup(
-    tags: List<TagWithChildren>,
+@OptIn(ExperimentalFoundationApi::class)
+private fun ReorderableSectionedTagList(
     viewModel: MainViewModel,
-    isWithReferences: Boolean,
-    onMove: (Int, Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    tagsWithReferences: List<TagWithChildren>,
+    tagsWithoutReferences: List<TagWithChildren>
 ) {
-    val listState = rememberLazyListState()
+    // 独立的本地状态，避免拖拽时外部流更新导致抖动
+    var localWithRefs by remember(tagsWithReferences) { mutableStateOf(tagsWithReferences) }
+    var localWithoutRefs by remember(tagsWithoutReferences) { mutableStateOf(tagsWithoutReferences) }
     val coroutineScope = rememberCoroutineScope()
-    
-    // 本地状态管理标签列表，避免拖拽时的数据流更新导致抖动
-    var localTags by remember(tags) { mutableStateOf(tags) }
-    
-    // Channel 用于同步数据库更新
-    val listUpdatedChannel = remember { Channel<Unit>(Channel.CONFLATED) }
-    
-    // 恢复滚动位置（仅第一个组）
-    LaunchedEffect(Unit) {
-        if (isWithReferences) {
-            val savedScrollIndex = viewModel.restoreTagDrawerScrollPosition()
-            if (savedScrollIndex > 0 && savedScrollIndex < localTags.size) {
-                listState.scrollToItem(savedScrollIndex)
-            }
-        }
-    }
-    
-    // 保存滚动位置（仅第一个组）
-    LaunchedEffect(listState.firstVisibleItemIndex) {
-        if (isWithReferences) {
-            viewModel.saveTagDrawerScrollPosition(listState.firstVisibleItemIndex)
-        }
-                                }
-                                
-    // 创建 Reorderable 状态
+
+    val withRefChannel = remember { Channel<Unit>(Channel.CONFLATED) }
+    val withoutRefChannel = remember { Channel<Unit>(Channel.CONFLATED) }
+
+    val listState = rememberLazyListState()
+
+    // 创建统一的 Reorderable 状态，按分区约束移动
     val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
-                                // 确保索引在有效范围内
-        if (from.index in localTags.indices && to.index in localTags.indices) {
-            // 立即更新本地状态（同步操作，避免抖动）
-            val newTags = localTags.toMutableList().apply {
-                add(to.index, removeAt(from.index))
+        val flat = buildFlatList(localWithRefs, localWithoutRefs)
+        val fromItem = flat.getOrNull(from.index) ?: return@rememberReorderableLazyListState
+        val toItem = flat.getOrNull(to.index) ?: return@rememberReorderableLazyListState
+
+        // 只允许在同一分区、非 Header 间移动
+        if (fromItem.isHeader || toItem.isHeader || fromItem.type != toItem.type) return@rememberReorderableLazyListState
+
+        when (fromItem.type) {
+            SectionType.WithRefs -> {
+                val fromIdx = fromItem.indexInSection ?: return@rememberReorderableLazyListState
+                val toIdx = toItem.indexInSection ?: return@rememberReorderableLazyListState
+                val updated = localWithRefs.toMutableList().apply {
+                    add(toIdx, removeAt(fromIdx))
+                }
+                localWithRefs = updated
+                withRefChannel.tryReceive()
+                coroutineScope.launch {
+                    viewModel.moveTagInGroup(fromIdx, toIdx, true)
+                    withRefChannel.send(Unit)
+                }
             }
-            localTags = newTags
-            
-            // 清空 channel 中的旧消息
-            listUpdatedChannel.tryReceive()
-            
-            // 异步更新数据库
-                                coroutineScope.launch {
-                onMove(from.index, to.index)
-                
-                // 通知数据库更新完成
-                listUpdatedChannel.send(Unit)
-                    }
+            SectionType.WithoutRefs -> {
+                val fromIdx = fromItem.indexInSection ?: return@rememberReorderableLazyListState
+                val toIdx = toItem.indexInSection ?: return@rememberReorderableLazyListState
+                val updated = localWithoutRefs.toMutableList().apply {
+                    add(toIdx, removeAt(fromIdx))
                 }
-    }
-    
-    // 监听数据流更新，使用 Channel 同步
-    LaunchedEffect(tags) {
-        // 如果本地状态的标签ID顺序和 tags 不同，说明有外部更新
-        val localTagIds = localTags.map { it.tag.id }
-        val newTagIds = tags.map { it.tag.id }
-        
-        if (localTagIds != newTagIds) {
-            // 等待数据库更新完成（如果有正在进行的更新）
-            // 使用 withTimeoutOrNull 避免无限等待
-            withTimeoutOrNull(100) {
-                listUpdatedChannel.receive()
+                localWithoutRefs = updated
+                withoutRefChannel.tryReceive()
+                coroutineScope.launch {
+                    viewModel.moveTagInGroup(fromIdx, toIdx, false)
+                    withoutRefChannel.send(Unit)
                 }
-                
-            // 更新本地状态
-            localTags = tags
+            }
         }
     }
-    
+
+    // 同步外部数据更新（有引用）
+    LaunchedEffect(tagsWithReferences) {
+        val localIds = localWithRefs.map { it.tag.id }
+        val newIds = tagsWithReferences.map { it.tag.id }
+        if (localIds != newIds) {
+            withTimeoutOrNull(100) { withRefChannel.receive() }
+            localWithRefs = tagsWithReferences
+        }
+    }
+
+    // 同步外部数据更新（无引用）
+    LaunchedEffect(tagsWithoutReferences) {
+        val localIds = localWithoutRefs.map { it.tag.id }
+        val newIds = tagsWithoutReferences.map { it.tag.id }
+        if (localIds != newIds) {
+            withTimeoutOrNull(100) { withoutRefChannel.receive() }
+            localWithoutRefs = tagsWithoutReferences
+        }
+    }
+
     LazyColumn(
         state = listState,
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(4.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-                items(
-            items = localTags,
-            key = { tagWithChildren -> tagWithChildren.tag.id }
-                ) { tagWithChildren ->
-            ReorderableItem(
-                reorderableState,
-                key = tagWithChildren.tag.id
-            ) { isDragging ->
+        if (localWithRefs.isNotEmpty()) {
+            stickyHeader {
+                SectionHeader(text = "本体/引用标签")
+            }
+            items(
+                items = localWithRefs,
+                key = { it.tag.id }
+            ) { tagWithChildren ->
+                ReorderableItem(
+                    reorderableState,
+                    key = tagWithChildren.tag.id
+                ) { isDragging ->
                     SwipeToDeleteTagItem(
                         tagWithChildren = tagWithChildren,
                         viewModel = viewModel,
-                        onDelete = { tag ->
-                            viewModel.deleteTagWithUndo(tag)
-                        },
-                    useReferencedTagExpansion = false,
-                    isDragging = isDragging,
-                    reorderableScope = this
+                        onDelete = { tag -> viewModel.deleteTagWithUndo(tag) },
+                        useReferencedTagExpansion = false,
+                        isDragging = isDragging,
+                        reorderableScope = this
                     )
+                }
             }
         }
+
+        if (localWithRefs.isNotEmpty() && localWithoutRefs.isNotEmpty()) {
+            item {
+                HorizontalDivider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                    thickness = 1.dp
+                )
+            }
+        }
+
+        if (localWithoutRefs.isNotEmpty()) {
+            stickyHeader {
+                SectionHeader(text = "无引用标签")
+            }
+            items(
+                items = localWithoutRefs,
+                key = { it.tag.id }
+            ) { tagWithChildren ->
+                ReorderableItem(
+                    reorderableState,
+                    key = tagWithChildren.tag.id
+                ) { isDragging ->
+                    SwipeToDeleteTagItem(
+                        tagWithChildren = tagWithChildren,
+                        viewModel = viewModel,
+                        onDelete = { tag -> viewModel.deleteTagWithUndo(tag) },
+                        useReferencedTagExpansion = false,
+                        isDragging = isDragging,
+                        reorderableScope = this
+                    )
+                }
+            }
+        }
+
+        if (localWithRefs.isEmpty() && localWithoutRefs.isEmpty()) {
+            item {
+                Text(
+                    text = "暂无标签",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
+        }
+    }
+}
+
+private data class FlatItem(
+    val type: SectionType,
+    val isHeader: Boolean,
+    val indexInSection: Int? // 在分区内的序号，Header 为 null
+)
+
+private enum class SectionType { WithRefs, WithoutRefs }
+
+private fun buildFlatList(
+    withRefs: List<TagWithChildren>,
+    withoutRefs: List<TagWithChildren>
+): List<FlatItem> {
+    val result = mutableListOf<FlatItem>()
+    if (withRefs.isNotEmpty()) {
+        result.add(FlatItem(SectionType.WithRefs, isHeader = true, indexInSection = null))
+        withRefs.forEachIndexed { idx, _ ->
+            result.add(FlatItem(SectionType.WithRefs, isHeader = false, indexInSection = idx))
+        }
+    }
+    if (withoutRefs.isNotEmpty()) {
+        result.add(FlatItem(SectionType.WithoutRefs, isHeader = true, indexInSection = null))
+        withoutRefs.forEachIndexed { idx, _ ->
+            result.add(FlatItem(SectionType.WithoutRefs, isHeader = false, indexInSection = idx))
+        }
+    }
+    return result
+}
+
+@Composable
+private fun SectionHeader(text: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 2.dp,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+        )
     }
 }
