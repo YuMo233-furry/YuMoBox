@@ -346,39 +346,49 @@ fun TagGroupNavigationBar(
                         
                         Spacer(modifier = Modifier.height(8.dp))
                         
-                        // 标签选择列表
-                        Box(modifier = Modifier.height(200.dp)) {
-                            LazyColumn {
-                                items(allTags) { tag ->
-                                    // 过滤标签
-                                    if (tagSearchQuery.isBlank() || tag.name.contains(tagSearchQuery, ignoreCase = true)) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable {
-                                                    // 切换标签选择状态
-                                                    selectedTags = if (selectedTags.contains(tag.id)) {
-                                                        selectedTags - tag.id
-                                                    } else {
-                                                        selectedTags + tag.id
-                                                    }
-                                                }
-                                                .padding(vertical = 8.dp)
-                                        ) {
-                                            Checkbox(
-                                                checked = selectedTags.contains(tag.id),
-                                                onCheckedChange = {
-                                                    selectedTags = if (it) {
-                                                        selectedTags + tag.id
-                                                    } else {
-                                                        selectedTags - tag.id
-                                                    }
-                                                }
-                                            )
-                                            Spacer(modifier = Modifier.width(8.dp))
-                                            Text(text = tag.name)
+                        val tagScrollState = rememberScrollState()
+
+                        // 标签选择列表：弹性布局
+                        @OptIn(ExperimentalLayoutApi::class)
+                        FlowRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(tagScrollState),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            allTags.forEach { tag ->
+                                if (tagSearchQuery.isBlank() || tag.name.contains(tagSearchQuery, ignoreCase = true)) {
+                                    val isSelected = selectedTags.contains(tag.id)
+                                    val backgroundColor = if (isSelected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.surfaceVariant
+                                    }
+                                    val contentColor = if (isSelected) {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+
+                                    Surface(
+                                        shape = MaterialTheme.shapes.medium,
+                                        color = backgroundColor,
+                                        contentColor = contentColor,
+                                        tonalElevation = if (isSelected) 2.dp else 0.dp,
+                                        shadowElevation = 0.dp,
+                                        onClick = {
+                                            selectedTags = if (isSelected) {
+                                                selectedTags - tag.id
+                                            } else {
+                                                selectedTags + tag.id
+                                            }
                                         }
+                                    ) {
+                                        Text(
+                                            text = tag.name,
+                                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                        )
                                     }
                                 }
                             }
