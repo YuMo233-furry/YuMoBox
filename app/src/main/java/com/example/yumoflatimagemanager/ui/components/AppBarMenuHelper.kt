@@ -137,6 +137,7 @@ object AppBarMenuHelper {
         var showMoreMenu by remember { mutableStateOf(false) }
         var showGridColumnsDialog by remember { mutableStateOf(false) }
         var currentGridColumns by remember { mutableStateOf(3) }
+        var showSecureModeInfoDialog by remember { mutableStateOf(false) }
         val context = LocalContext.current
         val configuration = LocalConfiguration.current
         val orientation = configuration.orientation
@@ -195,7 +196,10 @@ object AppBarMenuHelper {
                             }
                         )
                     },
-                    onClick = {}
+                    onClick = {
+                        showMoreMenu = false
+                        showSecureModeInfoDialog = true
+                    }
                 )
                 
                 // 添加自定义菜单项
@@ -281,6 +285,19 @@ object AppBarMenuHelper {
                     }
                 },
                 properties = DialogProperties()
+            )
+        }
+
+        if (showSecureModeInfoDialog) {
+            AlertDialog(
+                onDismissRequest = { showSecureModeInfoDialog = false },
+                title = { Text("说明") },
+                text = { Text("开启安全模式后隐藏设为安全的相册，并且使其他媒体也无法搜索到其中内容") },
+                confirmButton = {
+                    TextButton(onClick = { showSecureModeInfoDialog = false }) {
+                        Text("我知道了")
+                    }
+                }
             )
         }
     }
