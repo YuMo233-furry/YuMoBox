@@ -388,6 +388,34 @@ fun TagGroupNavigationBar(
                                 }
                             }
                         }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // 删除标签组按钮 - 左下角
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            TextButton(
+                                onClick = {
+                                    selectedTagGroup?.let { group ->
+                                        if (!group.isDefault) {
+                                            tagViewModel.deleteTagGroupWithUndo(group)
+                                            renameGroupName = ""
+                                            selectedTags = emptySet()
+                                            tagSearchQuery = ""
+                                            showRenameDialog = false
+                                        }
+                                    }
+                                },
+                                colors = ButtonDefaults.textButtonColors(
+                                    contentColor = MaterialTheme.colorScheme.error
+                                )
+                            ) {
+                                Text(text = "删除标签组")
+                            }
+                        }
                     }
                 },
                 confirmButton = {

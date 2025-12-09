@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagWithChildren
 import com.example.yumoflatimagemanager.feature.tag.model.DeletedTagCache
+import com.example.yumoflatimagemanager.feature.tag.model.DeletedTagGroupCache
 
 /**
  * 标签对话框状态管理类
@@ -67,6 +68,18 @@ class TagDialogState {
     
     /** 删除的标签名称 */
     var deletedTagName by mutableStateOf("")
+        private set
+
+    /** 最近删除的标签组缓存 */
+    var recentlyDeletedTagGroup by mutableStateOf<DeletedTagGroupCache?>(null)
+        private set
+
+    /** 显示标签组撤回删除消息 */
+    var showUndoDeleteTagGroupMessage by mutableStateOf(false)
+        private set
+
+    /** 删除的标签组名称 */
+    var deletedTagGroupName by mutableStateOf("")
         private set
     
     // ==================== 更新方法 ====================
@@ -151,6 +164,22 @@ class TagDialogState {
         recentlyDeletedTag = null
         deletedTagName = ""
         showUndoDeleteMessage = false
+    }
+
+    fun setDeletedTagGroupCache(cache: DeletedTagGroupCache) {
+        recentlyDeletedTagGroup = cache
+        deletedTagGroupName = cache.tagGroupData.name
+        showUndoDeleteTagGroupMessage = true
+    }
+
+    fun hideUndoDeleteTagGroupMessage() {
+        showUndoDeleteTagGroupMessage = false
+    }
+
+    fun clearDeletedTagGroupCache() {
+        recentlyDeletedTagGroup = null
+        deletedTagGroupName = ""
+        showUndoDeleteTagGroupMessage = false
     }
 }
 

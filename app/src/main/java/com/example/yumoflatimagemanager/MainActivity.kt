@@ -286,9 +286,12 @@ class MainActivity : ComponentActivity() {
     var showMoveDialog by remember { mutableStateOf(false) }
     // Snackbar状态
     val snackbarHostState = remember { SnackbarHostState() }
+    val tagViewModel = viewModel.tagViewModel
     // 监听撤回消息状态
     val showUndoDeleteMessage = viewModel.showUndoDeleteMessage
     val deletedTagName = viewModel.deletedTagName
+    val showUndoDeleteTagGroupMessage = tagViewModel.showUndoDeleteTagGroupMessage
+    val deletedTagGroupName = tagViewModel.deletedTagGroupName
     
     // 检查并请求权限
     CheckAndRequestPermissions(viewModel)
@@ -580,6 +583,21 @@ class MainActivity : ComponentActivity() {
                 .zIndex(20f)
         )
         
+        // 显示标签组撤回删除提示
+        LaunchedEffect(showUndoDeleteTagGroupMessage) {
+            if (showUndoDeleteTagGroupMessage && deletedTagGroupName.isNotEmpty()) {
+                val result = snackbarHostState.showSnackbar(
+                    message = "已删除标签组 $deletedTagGroupName",
+                    actionLabel = "撤回",
+                    duration = androidx.compose.material3.SnackbarDuration.Short
+                )
+                if (result == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                    tagViewModel.undoDeleteTagGroup()
+                }
+                tagViewModel.hideUndoDeleteTagGroupMessage()
+            }
+        }
+
         // 显示撤回删除提示
         LaunchedEffect(showUndoDeleteMessage) {
             if (showUndoDeleteMessage && deletedTagName.isNotEmpty()) {

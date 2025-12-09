@@ -20,6 +20,14 @@ data class DeletedTagCache(
 )
 
 /**
+ * 缓存被删除的标签组，用于撤回
+ */
+data class DeletedTagGroupCache(
+    val tagGroupData: com.example.yumoflatimagemanager.data.model.TagGroupData,
+    val previousSelectedGroupId: Long?
+)
+
+/**
  * 批量操作结果
  */
 data class BatchResult(

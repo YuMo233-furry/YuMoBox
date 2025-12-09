@@ -19,10 +19,13 @@ import com.example.yumoflatimagemanager.feature.tag.manager.TagPersistenceManage
 import com.example.yumoflatimagemanager.feature.tag.manager.TagSortManager
 import com.example.yumoflatimagemanager.feature.tag.manager.TagStatisticsManager
 import com.example.yumoflatimagemanager.feature.tag.model.BatchResult
+import com.example.yumoflatimagemanager.feature.tag.model.DeletedTagGroupCache
 import com.example.yumoflatimagemanager.feature.tag.state.TagDialogState
 import com.example.yumoflatimagemanager.feature.tag.state.TagState
 import com.example.yumoflatimagemanager.media.MediaContentManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -55,6 +58,7 @@ class TagViewModelNew(
     private val statisticsManager = TagStatisticsManager(tagRepo, mediaContentManager, tagState, viewModelScope)
     private val sortManager = TagSortManager(tagRepo, viewModelScope)
     private val persistenceManager = TagPersistenceManager(tagState)
+    private var undoDeleteTagGroupJob: Job? = null
     
     // 标签流
     val tagsFlow: Flow<List<com.example.yumoflatimagemanager.data.local.TagWithChildren>> = ObserveTagsUseCase(tagRepo).invoke()
@@ -129,6 +133,9 @@ class TagViewModelNew(
     val recentlyDeletedTag get() = dialogState.recentlyDeletedTag
     val showUndoDeleteMessage: Boolean get() = dialogState.showUndoDeleteMessage
     val deletedTagName: String get() = dialogState.deletedTagName
+    val recentlyDeletedTagGroup get() = dialogState.recentlyDeletedTagGroup
+    val showUndoDeleteTagGroupMessage: Boolean get() = dialogState.showUndoDeleteTagGroupMessage
+    val deletedTagGroupName: String get() = dialogState.deletedTagGroupName
     
     // ==================== CRUD 操作（代理到 crudManager） ====================
     
@@ -440,6 +447,11 @@ class TagViewModelNew(
         tagState.selectTagGroup(groupId)
         persistenceManager.saveTagGroupSelection(tagState.selectedTagGroupId)
     }
+
+    fun setTagGroupSelection(groupId: Long?) {
+        tagState.setTagGroupSelection(groupId)
+        persistenceManager.saveTagGroupSelection(groupId)
+    }
     
     fun toggleTagGroupDragMode() {
         tagState.isTagGroupDragMode = !tagState.isTagGroupDragMode
@@ -507,6 +519,96 @@ class TagViewModelNew(
             }
         }
     }
+
+    fun deleteTagGroupWithUndo(tagGroup: com.example.yumoflatimagemanager.data.local.TagGroupEntity) {
+        if (tagGroup.isDefault) return
+
+        undoDeleteTagGroupJob?.cancel()
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val tagGroupData = TagGroupFileManager.readTagGroup(tagGroup.id)
+                if (tagGroupData == null) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "未找到标签组数据，删除失败", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                val allTagGroups = TagGroupFileManager.getAllTagGroups()
+                val remainingGroups = allTagGroups.filter { it.id != tagGroup.id }
+                val fallbackGroupId = remainingGroups.firstOrNull { it.isDefault }?.id
+                    ?: remainingGroups.firstOrNull()?.id
+                val previousSelected = tagState.selectedTagGroupId
+
+                val deleted = TagGroupFileManager.deleteTagGroup(tagGroup.id)
+                if (deleted) {
+                    if (previousSelected == tagGroup.id) {
+                        withContext(Dispatchers.Main) {
+                            setTagGroupSelection(fallbackGroupId)
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        dialogState.setDeletedTagGroupCache(
+                            DeletedTagGroupCache(
+                                tagGroupData = tagGroupData,
+                                previousSelectedGroupId = previousSelected
+                            )
+                        )
+                    }
+
+                    undoDeleteTagGroupJob = viewModelScope.launch {
+                        delay(5000)
+                        dialogState.hideUndoDeleteTagGroupMessage()
+                        dialogState.clearDeletedTagGroupCache()
+                    }
+                } else {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(context, "删除标签组失败", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "删除标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    fun undoDeleteTagGroup() {
+        undoDeleteTagGroupJob?.cancel()
+
+        val cache = dialogState.recentlyDeletedTagGroup ?: return
+
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val restored = TagGroupFileManager.writeTagGroup(cache.tagGroupData)
+                if (restored && cache.previousSelectedGroupId == cache.tagGroupData.id) {
+                    withContext(Dispatchers.Main) {
+                        setTagGroupSelection(cache.tagGroupData.id)
+                    }
+                }
+
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "已恢复标签组 ${cache.tagGroupData.name}", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(context, "恢复标签组失败: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            } finally {
+                withContext(Dispatchers.Main) {
+                    dialogState.clearDeletedTagGroupCache()
+                }
+            }
+        }
+    }
+
+    fun hideUndoDeleteTagGroupMessage() = dialogState.hideUndoDeleteTagGroupMessage()
+    fun clearDeletedTagGroupCache() = dialogState.clearDeletedTagGroupCache()
     
     // 标签组与标签关联管理
     fun addTagToTagGroup(tagId: Long, tagGroupId: Long) {
