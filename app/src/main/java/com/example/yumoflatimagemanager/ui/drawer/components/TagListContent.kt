@@ -137,7 +137,7 @@ private fun ReorderableSectionedTagList(
     ) {
         if (localWithRefs.isNotEmpty()) {
             stickyHeader {
-                SectionHeader(text = "本体/引用标签")
+                SectionHeader(text = "有引用标签")
             }
             items(
                 items = localWithRefs,

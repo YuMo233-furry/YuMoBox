@@ -404,8 +404,20 @@ class FileTagRepositoryImpl(private val dao: TagDao) : TagRepository {
         // 创建标签ID到标签数据的映射，用于快速查找
         val tagMap = allTags.associateBy { it.id }
         
-        // 筛选根标签
+        // 筛选根标签并按排序字段排序（与DAO查询逻辑一致）
         val rootTags = allTags.filter { it.parentId == null }
+            .sortedWith(compareBy(
+                // 首先按排序值排序：有引用组排序值优先，否则使用普通组排序值+1000000
+                { tagData ->
+                    if (tagData.referencedGroupSortOrder > 0) {
+                        tagData.referencedGroupSortOrder
+                    } else {
+                        tagData.normalGroupSortOrder + 1000000
+                    }
+                },
+                // 然后按名称排序
+                { tagData -> tagData.name }
+            ))
         
         // 将文件存储的TagData转换为数据库模型的TagWithChildren
         return rootTags.mapNotNull { tagData ->
