@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -41,6 +42,14 @@ fun ExpandableSearchButton(
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
     val textFieldValue = remember { mutableStateOf(TextFieldValue(searchQuery)) }
+    var hadFocus by remember { mutableStateOf(false) }
+
+    // 同步外部状态变更（例如重置搜索）
+    LaunchedEffect(searchQuery) {
+        if (textFieldValue.value.text != searchQuery) {
+            textFieldValue.value = TextFieldValue(searchQuery)
+        }
+    }
     
     // 标题文字透明度动画
     val titleAlpha by animateFloatAsState(
@@ -71,16 +80,21 @@ fun ExpandableSearchButton(
                 onValueChange = { newValue ->
                     textFieldValue.value = newValue
                     onSearchQueryChange(newValue.text)
-                    
-                    // 内容为空时自动收缩
-                    if (newValue.text.isEmpty()) {
-                        isExpanded = false
-                    }
                 },
                 modifier = Modifier
                     .focusRequester(focusRequester)
                     .focusable()
                     .width(200.dp)
+                    .onFocusChanged { state ->
+                        if (state.isFocused) {
+                            hadFocus = true
+                        }
+                        // 仅在获得过焦点后才因失焦收起，避免展开瞬间被关闭
+                        if (!state.isFocused && hadFocus && textFieldValue.value.text.isEmpty()) {
+                            isExpanded = false
+                            hadFocus = false
+                        }
+                    }
                     .onKeyEvent {
                         if (it.key == Key.Back && isExpanded) {
                             isExpanded = false

@@ -221,19 +221,30 @@ private fun TagManagerContent(
             }
         }
         
-        // 搜索和标签组结合的过滤逻辑
-        val filteredTags by remember(tagGroupFilteredTags, searchQuery) {
+        // 搜索和标签组结合的过滤与排序逻辑
+        val filteredTags by remember(tags, tagGroupFilteredTags, selectedTagGroupId, searchQuery) {
             derivedStateOf {
-                var result = tagGroupFilteredTags
-                
-                // 根据搜索关键词过滤
-                if (searchQuery.isNotBlank()) {
-                    result = result.filter { tagWithChildren ->
-                        tagWithChildren.tag.name.contains(searchQuery, ignoreCase = true)
-                    }
+                if (searchQuery.isBlank()) {
+                    // 没有搜索时沿用当前分组过滤结果
+                    return@derivedStateOf tagGroupFilteredTags
                 }
-                
-                result
+
+                // 搜索时基于所有标签匹配
+                val matched = tags.filter { tagWithChildren ->
+                    tagWithChildren.tag.name.contains(searchQuery, ignoreCase = true)
+                }
+
+                // 将当前分组内的匹配项排在前面
+                val inGroupIds = if (selectedTagGroupId == null) {
+                    emptySet<Long>()
+                } else {
+                    tagGroupFilteredTags.map { it.tag.id }.toSet()
+                }
+
+                matched.sortedWith(
+                    compareBy<TagWithChildren> { !inGroupIds.contains(it.tag.id) }
+                        .thenBy { it.tag.name.lowercase() }
+                )
             }
         }
         
