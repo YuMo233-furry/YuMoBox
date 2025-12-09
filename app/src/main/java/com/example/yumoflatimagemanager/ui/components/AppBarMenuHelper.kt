@@ -292,7 +292,7 @@ object AppBarMenuHelper {
             AlertDialog(
                 onDismissRequest = { showSecureModeInfoDialog = false },
                 title = { Text("说明") },
-                text = { Text("开启安全模式后隐藏设为安全的相册，并且使其他媒体也无法搜索到其中内容") },
+                text = { Text("开启安全模式后隐藏设为私密的相册，并且使其他媒体也无法搜索到其中内容") },
                 confirmButton = {
                     TextButton(onClick = { showSecureModeInfoDialog = false }) {
                         Text("我知道了")
