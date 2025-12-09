@@ -9,11 +9,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.example.yumoflatimagemanager.MainViewModel
 import com.example.yumoflatimagemanager.data.local.TagWithChildren
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 import sh.calvin.reorderable.ReorderableItem
 import sh.calvin.reorderable.rememberReorderableLazyListState
 
@@ -92,12 +99,19 @@ private fun ReorderableTagGroup(
     modifier: Modifier = Modifier
 ) {
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
+    
+    // 本地状态管理标签列表，避免拖拽时的数据流更新导致抖动
+    var localTags by remember(tags) { mutableStateOf(tags) }
+    
+    // Channel 用于同步数据库更新
+    val listUpdatedChannel = remember { Channel<Unit>(Channel.CONFLATED) }
     
     // 恢复滚动位置（仅第一个组）
     LaunchedEffect(Unit) {
         if (isWithReferences) {
             val savedScrollIndex = viewModel.restoreTagDrawerScrollPosition()
-            if (savedScrollIndex > 0 && savedScrollIndex < tags.size) {
+            if (savedScrollIndex > 0 && savedScrollIndex < localTags.size) {
                 listState.scrollToItem(savedScrollIndex)
             }
         }
@@ -113,8 +127,41 @@ private fun ReorderableTagGroup(
     // 创建 Reorderable 状态
     val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
         // 确保索引在有效范围内
-        if (from.index in tags.indices && to.index in tags.indices) {
-            onMove(from.index, to.index)
+        if (from.index in localTags.indices && to.index in localTags.indices) {
+            // 立即更新本地状态（同步操作，避免抖动）
+            val newTags = localTags.toMutableList().apply {
+                add(to.index, removeAt(from.index))
+            }
+            localTags = newTags
+            
+            // 清空 channel 中的旧消息
+            listUpdatedChannel.tryReceive()
+            
+            // 异步更新数据库
+            coroutineScope.launch {
+                onMove(from.index, to.index)
+                
+                // 通知数据库更新完成
+                listUpdatedChannel.send(Unit)
+            }
+        }
+    }
+    
+    // 监听数据流更新，使用 Channel 同步
+    LaunchedEffect(tags) {
+        // 如果本地状态的标签ID顺序和 tags 不同，说明有外部更新
+        val localTagIds = localTags.map { it.tag.id }
+        val newTagIds = tags.map { it.tag.id }
+        
+        if (localTagIds != newTagIds) {
+            // 等待数据库更新完成（如果有正在进行的更新）
+            // 使用 withTimeoutOrNull 避免无限等待
+            withTimeoutOrNull(100) {
+                listUpdatedChannel.receive()
+            }
+            
+            // 更新本地状态
+            localTags = tags
         }
     }
     
@@ -125,7 +172,7 @@ private fun ReorderableTagGroup(
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
         items(
-            items = tags,
+            items = localTags,
             key = { tagWithChildren -> tagWithChildren.tag.id }
         ) { tagWithChildren ->
             ReorderableItem(
