@@ -15,15 +15,27 @@ data class SecurityConfig(
 )
 
 /**
+ * 横竖屏网格列数配置
+ */
+data class OrientationGridColumns(
+    // 竖屏时的网格列数
+    var portrait: Int = 3,
+    // 横屏时的网格列数
+    var landscape: Int = 6
+)
+
+/**
  * 相册配置
  */
 data class AlbumConfig(
-    // 相册网格列数配置，key为相册ID，value为列数
-    val gridColumns: MutableMap<String, Int> = mutableMapOf(),
+    // 相册网格列数配置，key为相册ID，value为横竖屏列数配置
+    val gridColumns: MutableMap<String, OrientationGridColumns> = mutableMapOf(),
     // 相册排序配置，key为相册ID，value为排序配置
     val sortConfigs: MutableMap<String, SortConfig> = mutableMapOf(),
     // 相册列表排序配置
     var albumsSortConfig: SortConfig = SortConfig(SortType.MODIFY_TIME, SortDirection.DESCENDING),
+    // 主页面相册列表网格列数配置（区分横竖屏）
+    var albumsGridColumns: OrientationGridColumns = OrientationGridColumns(),
     // 网格滚动位置配置
     val gridScrollPositions: MutableMap<String, ScrollPosition> = mutableMapOf()
 )

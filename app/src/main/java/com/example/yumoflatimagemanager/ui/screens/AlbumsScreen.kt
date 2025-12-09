@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
@@ -23,6 +24,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import android.content.res.Configuration
 import com.example.yumoflatimagemanager.MainViewModel
 import com.example.yumoflatimagemanager.data.Album
 import com.example.yumoflatimagemanager.data.AlbumType
@@ -57,6 +59,7 @@ fun AlbumsScreen(
     
     // 创建LazyGridState并恢复滚动位置
     val gridState = rememberLazyGridState()
+    val configuration = LocalConfiguration.current
     
     // 恢复滚动位置
     LaunchedEffect(Unit) {
@@ -64,6 +67,11 @@ fun AlbumsScreen(
         if (firstIndex > 0 || firstOffset > 0) {
             gridState.scrollToItem(firstIndex, firstOffset)
         }
+    }
+    
+    // 监听屏幕方向变化，更新主页面网格列数
+    LaunchedEffect(configuration.orientation) {
+        viewModel.updateAlbumsGridColumnCountForOrientation()
     }
     
     // 保存滚动位置
@@ -153,7 +161,7 @@ fun AlbumsScreen(
         // 使用单一的LazyVerticalGrid来避免滚动组件嵌套问题
         LazyVerticalGrid(
             state = gridState,
-            columns = GridCells.Fixed(3),
+            columns = GridCells.Fixed(viewModel.albumsGridColumnCount),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = modifier

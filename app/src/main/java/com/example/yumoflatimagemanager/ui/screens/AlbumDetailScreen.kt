@@ -16,7 +16,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -94,11 +96,22 @@ fun AlbumDetailScreen(
     // 滚动状态
     val scrollProgress = remember { mutableStateOf(0f) }
     val lazyGridState = rememberLazyGridState()
+    val configuration = LocalConfiguration.current
+    
     LaunchedEffect(Unit) {
         // 不再恢复滚动位置，每次都从顶部开始
         // 恢复已激活标签
         viewModel.restoreTagFilters()
     }
+    
+    // 监听屏幕方向变化，更新相册网格列数
+    LaunchedEffect(configuration.orientation, viewModel.selectedAlbum) {
+        viewModel.selectedAlbum?.let { album ->
+            // 重新加载相册图片以应用新的网格列数配置
+            viewModel.loadAlbumImages(album)
+        }
+    }
+    
     val isNearTop = remember { mutableStateOf(true) }
     
     // 计算隐私按钮状态

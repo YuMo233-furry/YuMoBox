@@ -17,6 +17,9 @@ import com.example.yumoflatimagemanager.data.SortConfig
 import com.example.yumoflatimagemanager.data.SortDirection
 import com.example.yumoflatimagemanager.data.SortType
 import com.example.yumoflatimagemanager.secure.SecureModeManager
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
+import com.example.yumoflatimagemanager.ui.screens.Screen
 
 /**
  * AppBar菜单辅助工具类，提供统一的菜单实现，便于在不同组件中复用
@@ -133,10 +136,23 @@ object AppBarMenuHelper {
     ) {
         var showMoreMenu by remember { mutableStateOf(false) }
         var showGridColumnsDialog by remember { mutableStateOf(false) }
-        var currentGridColumns by remember { mutableStateOf(viewModel.gridColumnCount) }
+        var currentGridColumns by remember { mutableStateOf(3) }
         val context = LocalContext.current
+        val configuration = LocalConfiguration.current
+        val orientation = configuration.orientation
+        // 通过当前屏幕判断是否在相册详情页，避免 selectedAlbum 残留导致主页面使用相册配置
+        val isInAlbumDetail = viewModel.currentScreen is Screen.AlbumDetail
         val isSecureModeEnabled = remember {
             mutableStateOf(SecureModeManager.isSecureModeEnabled(context))
+        }
+        
+        // 根据是否在相册详情页选择当前值
+        LaunchedEffect(isInAlbumDetail, orientation) {
+            currentGridColumns = if (isInAlbumDetail) {
+                viewModel.gridColumnCount
+            } else {
+                viewModel.albumsGridColumnCount
+            }
         }
         
         Box {
@@ -157,7 +173,7 @@ object AppBarMenuHelper {
                 DropdownMenuItem(
                     text = { Text("网格列数") },
                     onClick = {
-                        currentGridColumns = viewModel.gridColumnCount
+                        currentGridColumns = if (isInAlbumDetail) viewModel.gridColumnCount else viewModel.albumsGridColumnCount
                         showMoreMenu = false
                         showGridColumnsDialog = true
                     }
@@ -195,11 +211,21 @@ object AppBarMenuHelper {
             }
         }
         
-        // 网格列数调整对话框
-        if (showGridColumnsDialog && viewModel.selectedAlbum != null) {
+        // 网格列数调整对话框（主页面和相册详情页都支持）
+        if (showGridColumnsDialog) {
+            val orientationText = when (orientation) {
+                Configuration.ORIENTATION_LANDSCAPE -> "横屏"
+                else -> "竖屏"
+            }
+            val dialogTitle = if (isInAlbumDetail) {
+                "调整网格列数（$orientationText）"
+            } else {
+                "调整相册列表网格列数（$orientationText）"
+            }
+            
             AlertDialog(
                 onDismissRequest = { showGridColumnsDialog = false },
-                title = { Text("调整网格列数") },
+                title = { Text(dialogTitle) },
                 text = {
                     Column(
                         modifier = Modifier.padding(vertical = 8.dp)
@@ -234,7 +260,13 @@ object AppBarMenuHelper {
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            viewModel.updateAlbumGridColumns(viewModel.selectedAlbum!!, currentGridColumns)
+                            if (isInAlbumDetail) {
+                                viewModel.selectedAlbum?.let { album ->
+                                    viewModel.updateAlbumGridColumns(album, currentGridColumns)
+                                }
+                            } else {
+                                viewModel.updateAlbumsGridColumns(currentGridColumns)
+                            }
                             showGridColumnsDialog = false
                         }
                     ) {

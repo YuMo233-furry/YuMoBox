@@ -1802,6 +1802,50 @@ class MainViewModel(private val context: Context) : ViewModel() {
     // 当前相册的网格列数
     var gridColumnCount by mutableStateOf(3)
     
+    // 主页面相册列表的网格列数
+    var albumsGridColumnCount by mutableStateOf(3)
+    
+    /**
+     * 获取当前屏幕方向
+     * @return Configuration.ORIENTATION_PORTRAIT 或 Configuration.ORIENTATION_LANDSCAPE
+     */
+    private fun getCurrentOrientation(): Int {
+        return context.resources.configuration.orientation
+    }
+    
+    /**
+     * 根据屏幕方向更新主页面网格列数
+     */
+    fun updateAlbumsGridColumnCountForOrientation() {
+        val orientation = getCurrentOrientation()
+        val albumConfig = ConfigManager.readAlbumConfig()
+        albumsGridColumnCount = when (orientation) {
+            android.content.res.Configuration.ORIENTATION_LANDSCAPE -> {
+                albumConfig.albumsGridColumns.landscape
+            }
+            else -> {
+                albumConfig.albumsGridColumns.portrait
+            }
+        }
+    }
+    
+    /**
+     * 根据屏幕方向更新当前相册网格列数
+     */
+    private fun updateGridColumnCountForOrientation(album: Album) {
+        val orientation = getCurrentOrientation()
+        val albumConfig = ConfigManager.readAlbumConfig()
+        val gridColumns = albumConfig.gridColumns[album.id]
+        gridColumnCount = when (orientation) {
+            android.content.res.Configuration.ORIENTATION_LANDSCAPE -> {
+                gridColumns?.landscape ?: 6
+            }
+            else -> {
+                gridColumns?.portrait ?: 3
+            }
+        }
+    }
+    
     // 相册中的图片列表
     var images: List<ImageItem> by mutableStateOf(emptyList())
         private set
@@ -1830,6 +1874,9 @@ class MainViewModel(private val context: Context) : ViewModel() {
         
         // 恢复所有标签状态
         restoreAllTagStates()
+        
+        // 初始化主页面网格列数
+        updateAlbumsGridColumnCountForOrientation()
         
         // 初始化水印功能
         loadWatermarkPresets()
@@ -2155,13 +2202,13 @@ class MainViewModel(private val context: Context) : ViewModel() {
     /**
      * 加载指定相册的图片
      */
-    private fun loadAlbumImages(album: Album) {
+    fun loadAlbumImages(album: Album) {
         // 尝试从偏好设置中获取该相册的排序配置
         val savedSortConfig = ConfigManager.readAlbumConfig().sortConfigs[album.id] ?: SortConfig()
         val sortConfig = savedSortConfig ?: album.sortConfig
         
-        // 尝试从偏好设置中获取该相册的网格列数配置
-        gridColumnCount = ConfigManager.readAlbumConfig().gridColumns[album.id] ?: 3
+        // 根据当前屏幕方向获取该相册的网格列数配置
+        updateGridColumnCountForOrientation(album)
         
         // 使用媒体内容管理器获取相册中的图片
         images = mediaContentManager.getImagesByAlbumId(album.id, sortConfig)
@@ -2951,13 +2998,56 @@ class MainViewModel(private val context: Context) : ViewModel() {
         
         // 从配置文件读取当前相册配置
         val albumConfig = ConfigManager.readAlbumConfig()
+        // 获取或创建该相册的网格列数配置
+        val currentGridColumns = albumConfig.gridColumns[album.id] 
+            ?: com.example.yumoflatimagemanager.data.OrientationGridColumns()
+        
+        // 根据当前屏幕方向更新对应的列数
+        val orientation = getCurrentOrientation()
+        when (orientation) {
+            android.content.res.Configuration.ORIENTATION_LANDSCAPE -> {
+                currentGridColumns.landscape = validColumns
+            }
+            else -> {
+                currentGridColumns.portrait = validColumns
+            }
+        }
+        
         // 更新相册网格列数配置
-        albumConfig.gridColumns[album.id] = validColumns
+        albumConfig.gridColumns[album.id] = currentGridColumns
         // 保存回配置文件
         ConfigManager.writeAlbumConfig(albumConfig)
         
         // 强制重新加载相册图片，以适应新的网格列数
         loadAlbumImages(album)
+    }
+    
+    /**
+     * 更新主页面相册列表网格列数配置
+     */
+    fun updateAlbumsGridColumns(columns: Int) {
+        // 确保列数在有效范围内
+        val validColumns = columns.coerceIn(2, 8)
+        
+        // 更新当前主页面网格列数
+        albumsGridColumnCount = validColumns
+        
+        // 从配置文件读取当前相册配置
+        val albumConfig = ConfigManager.readAlbumConfig()
+        
+        // 根据当前屏幕方向更新对应的列数
+        val orientation = getCurrentOrientation()
+        when (orientation) {
+            android.content.res.Configuration.ORIENTATION_LANDSCAPE -> {
+                albumConfig.albumsGridColumns.landscape = validColumns
+            }
+            else -> {
+                albumConfig.albumsGridColumns.portrait = validColumns
+            }
+        }
+        
+        // 保存回配置文件
+        ConfigManager.writeAlbumConfig(albumConfig)
     }
     
     /**

@@ -171,7 +171,11 @@ object ConfigMigration {
             if (key.startsWith(PREF_GRID_COLUMNS_PREFIX)) {
                 val albumId = key.substring(PREF_GRID_COLUMNS_PREFIX.length)
                 val columns = preferences.getInt(key, 3)
-                albumConfig.gridColumns[albumId] = columns
+                // 将旧的Int值迁移到新的OrientationGridColumns结构，默认设置竖屏值
+                albumConfig.gridColumns[albumId] = OrientationGridColumns(
+                    portrait = columns,
+                    landscape = 6 // 横屏默认6列
+                )
             }
         }
     }
