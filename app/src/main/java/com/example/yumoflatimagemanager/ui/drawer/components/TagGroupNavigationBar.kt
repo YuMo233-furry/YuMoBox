@@ -94,7 +94,18 @@ fun TagGroupNavigationBar(
             // 标签组导航栏主内容
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 // 横向滚动的标签组列表 - 占据大部分宽度
+                val rowState = rememberLazyListState()
+                // 自动定位到选中项
+                LaunchedEffect(selectedTagGroupId, tagGroups) {
+                    if (selectedTagGroupId != null) {
+                        val targetIndex = tagGroups.indexOfFirst { it.id == selectedTagGroupId }
+                        if (targetIndex >= 0) {
+                            rowState.animateScrollToItem(targetIndex)
+                        }
+                    }
+                }
                 LazyRow(
+                    state = rowState,
                     modifier = Modifier.weight(1f),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically,

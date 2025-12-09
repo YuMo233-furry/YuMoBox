@@ -50,8 +50,8 @@ data class TagConfig(
     var expandedReferencedTagIds: Set<Long> = emptySet(),
     // 标签抽屉滚动索引
     var tagDrawerScrollIndex: Int = 0,
-    // 当前选中的标签组ID
-    var selectedTagGroupId: Long = 1L
+    // 当前选中的标签组ID，0 表示未选中
+    var selectedTagGroupId: Long? = 1L
 )
 
 /**

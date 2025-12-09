@@ -85,7 +85,11 @@ class TagViewModelNew(
             // 恢复上次选中的标签组：若不存在则回退到默认或第一个
             val savedGroupId = persistenceManager.getSavedTagGroupId()
             val targetGroupId = when {
+                // 已保存且存在 -> 选中
                 savedGroupId != null && allTagGroups.any { it.id == savedGroupId } -> savedGroupId
+                // 未保存（null）-> 保持 null
+                savedGroupId == null -> null
+                // 保存的不存在 -> 回退默认/第一项，否则 null
                 allTagGroups.any { it.isDefault } -> allTagGroups.first { it.isDefault }.id
                 else -> allTagGroups.firstOrNull()?.id
             }

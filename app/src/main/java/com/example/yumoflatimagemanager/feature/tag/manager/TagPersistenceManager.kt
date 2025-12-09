@@ -30,7 +30,8 @@ class TagPersistenceManager(
         tagConfig.expandedTagIds = tagState.expandedTagIds
         tagConfig.expandedReferencedTagIds = tagState.expandedReferencedTagIds
         tagConfig.tagDrawerScrollIndex = tagState.tagDrawerScrollIndex
-        tagConfig.selectedTagGroupId = tagState.selectedTagGroupId ?: 1L // 如果为null，保存默认的"未分组"标签组
+        // 未选中时保存为 0，避免字段缺失
+        tagConfig.selectedTagGroupId = tagState.selectedTagGroupId ?: 0L
         ConfigManager.writeTagConfig(tagConfig)
     }
     
@@ -39,7 +40,8 @@ class TagPersistenceManager(
      */
     fun saveTagGroupSelection(selectedGroupId: Long? = tagState.selectedTagGroupId) {
         val tagConfig = ConfigManager.readTagConfig()
-        tagConfig.selectedTagGroupId = selectedGroupId ?: 1L // 如果为null，保存默认的"未分组"标签组
+        // 未选中保存为 0
+        tagConfig.selectedTagGroupId = selectedGroupId ?: 0L
         ConfigManager.writeTagConfig(tagConfig)
     }
 
@@ -48,7 +50,7 @@ class TagPersistenceManager(
      */
     fun getSavedTagGroupId(): Long? {
         val tagConfig = ConfigManager.readTagConfig()
-        return tagConfig.selectedTagGroupId
+        return tagConfig.selectedTagGroupId?.let { if (it == 0L) null else it }
     }
     
     /**
@@ -158,7 +160,7 @@ class TagPersistenceManager(
      */
     fun restoreTagGroupSelection() {
         val tagConfig = ConfigManager.readTagConfig()
-        val savedGroupId = tagConfig.selectedTagGroupId ?: 1L
+        val savedGroupId = tagConfig.selectedTagGroupId?.let { if (it == 0L) null else it }
         tagState.setTagGroupSelection(savedGroupId)
     }
     
