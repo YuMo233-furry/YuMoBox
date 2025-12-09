@@ -76,8 +76,10 @@ private fun ReorderableSectionedTagList(
         val fromItem = flat.getOrNull(from.index) ?: return@rememberReorderableLazyListState
         val toItem = flat.getOrNull(to.index) ?: return@rememberReorderableLazyListState
 
-        // 只允许在同一分区、非 Header 间移动
-        if (fromItem.isHeader || toItem.isHeader || fromItem.type != toItem.type) return@rememberReorderableLazyListState
+        // 只允许在同一分区、非 Header、非 Divider 间移动
+        if (fromItem.isHeader || toItem.isHeader || fromItem.isDivider || toItem.isDivider || fromItem.type != toItem.type) {
+            return@rememberReorderableLazyListState
+        }
 
         when (fromItem.type) {
             SectionType.WithRefs -> {
@@ -210,7 +212,8 @@ private fun ReorderableSectionedTagList(
 private data class FlatItem(
     val type: SectionType,
     val isHeader: Boolean,
-    val indexInSection: Int? // 在分区内的序号，Header 为 null
+    val isDivider: Boolean = false, // 是否为分隔线
+    val indexInSection: Int? // 在分区内的序号，Header 和 Divider 为 null
 )
 
 private enum class SectionType { WithRefs, WithoutRefs }
@@ -225,6 +228,10 @@ private fun buildFlatList(
         withRefs.forEachIndexed { idx, _ ->
             result.add(FlatItem(SectionType.WithRefs, isHeader = false, indexInSection = idx))
         }
+    }
+    // 当两个分区都存在时，添加 Divider 占位符以匹配 LazyColumn 的实际结构
+    if (withRefs.isNotEmpty() && withoutRefs.isNotEmpty()) {
+        result.add(FlatItem(SectionType.WithRefs, isHeader = false, isDivider = true, indexInSection = null))
     }
     if (withoutRefs.isNotEmpty()) {
         result.add(FlatItem(SectionType.WithoutRefs, isHeader = true, indexInSection = null))
