@@ -385,11 +385,12 @@ fun TagGroupNavigationBar(
                         }
 
                         Spacer(modifier = Modifier.height(12.dp))
-
-                        // 删除标签组按钮 - 左下角
+                    }
+                },
+                confirmButton = {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.Start,
+                        horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             TextButton(
@@ -410,10 +411,18 @@ fun TagGroupNavigationBar(
                             ) {
                                 Text(text = "删除标签组")
                             }
-                        }
-                    }
-                },
-                confirmButton = {
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            TextButton(onClick = {
+                                // 重置状态
+                                renameGroupName = ""
+                                selectedTags = emptySet()
+                                tagSearchQuery = ""
+                                showRenameDialog = false
+                            }) {
+                                Text(text = "取消")
+                            }
+
                     TextButton(
                         onClick = {
                             if (renameGroupName.isNotBlank()) {
@@ -470,18 +479,10 @@ fun TagGroupNavigationBar(
                     ) {
                         Text(text = "确定")
                     }
-                },
-                dismissButton = {
-                    TextButton(onClick = {
-                        // 重置状态
-                        renameGroupName = ""
-                        selectedTags = emptySet()
-                        tagSearchQuery = ""
-                        showRenameDialog = false
-                    }) {
-                        Text(text = "取消")
+                        }
                     }
-                }
+                },
+                dismissButton = null
             )
         }
     }
