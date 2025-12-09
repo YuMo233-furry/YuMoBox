@@ -43,35 +43,35 @@ fun TagListContent(
     
     Column(modifier = modifier) {
         if (filteredTags.isEmpty()) {
-            Text(
-                text = "暂无标签",
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(8.dp)
-            )
+                Text(
+                    text = "暂无标签",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(8.dp)
+                )
         } else {
             // 有引用标签组
             if (tagsWithReferences.isNotEmpty()) {
                 ReorderableTagGroup(
                     tags = tagsWithReferences,
-                    viewModel = viewModel,
+                            viewModel = viewModel,
                     isWithReferences = true,
-                    onMove = { fromIndex, toIndex ->
+                            onMove = { fromIndex, toIndex ->
                         viewModel.moveTagInGroup(fromIndex, toIndex, true)
                     }
                 )
-            }
-            
+                }
+                
             // 分隔线
-            if (tagsWithReferences.isNotEmpty() && tagsWithoutReferences.isNotEmpty()) {
-                HorizontalDivider(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                    thickness = 1.dp
-                )
-            }
-            
+                if (tagsWithReferences.isNotEmpty() && tagsWithoutReferences.isNotEmpty()) {
+                        HorizontalDivider(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 8.dp),
+                            color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                            thickness = 1.dp
+                        )
+                    }
+                
             // 无引用标签组
             if (tagsWithoutReferences.isNotEmpty()) {
                 ReorderableTagGroup(
@@ -80,7 +80,7 @@ fun TagListContent(
                     isWithReferences = false,
                     onMove = { fromIndex, toIndex ->
                         viewModel.moveTagInGroup(fromIndex, toIndex, false)
-                    }
+                        }
                 )
             }
         }
@@ -122,11 +122,11 @@ private fun ReorderableTagGroup(
         if (isWithReferences) {
             viewModel.saveTagDrawerScrollPosition(listState.firstVisibleItemIndex)
         }
-    }
-    
+                                }
+                                
     // 创建 Reorderable 状态
     val reorderableState = rememberReorderableLazyListState(listState) { from, to ->
-        // 确保索引在有效范围内
+                                // 确保索引在有效范围内
         if (from.index in localTags.indices && to.index in localTags.indices) {
             // 立即更新本地状态（同步操作，避免抖动）
             val newTags = localTags.toMutableList().apply {
@@ -138,13 +138,13 @@ private fun ReorderableTagGroup(
             listUpdatedChannel.tryReceive()
             
             // 异步更新数据库
-            coroutineScope.launch {
+                                coroutineScope.launch {
                 onMove(from.index, to.index)
                 
                 // 通知数据库更新完成
                 listUpdatedChannel.send(Unit)
-            }
-        }
+                    }
+                }
     }
     
     // 监听数据流更新，使用 Channel 同步
@@ -158,8 +158,8 @@ private fun ReorderableTagGroup(
             // 使用 withTimeoutOrNull 避免无限等待
             withTimeoutOrNull(100) {
                 listUpdatedChannel.receive()
-            }
-            
+                }
+                
             // 更新本地状态
             localTags = tags
         }
@@ -171,24 +171,24 @@ private fun ReorderableTagGroup(
         verticalArrangement = Arrangement.spacedBy(4.dp),
         contentPadding = PaddingValues(vertical = 8.dp)
     ) {
-        items(
+                items(
             items = localTags,
             key = { tagWithChildren -> tagWithChildren.tag.id }
-        ) { tagWithChildren ->
+                ) { tagWithChildren ->
             ReorderableItem(
                 reorderableState,
                 key = tagWithChildren.tag.id
             ) { isDragging ->
-                SwipeToDeleteTagItem(
-                    tagWithChildren = tagWithChildren,
-                    viewModel = viewModel,
-                    onDelete = { tag ->
-                        viewModel.deleteTagWithUndo(tag)
-                    },
+                    SwipeToDeleteTagItem(
+                        tagWithChildren = tagWithChildren,
+                        viewModel = viewModel,
+                        onDelete = { tag ->
+                            viewModel.deleteTagWithUndo(tag)
+                        },
                     useReferencedTagExpansion = false,
                     isDragging = isDragging,
                     reorderableScope = this
-                )
+                    )
             }
         }
     }

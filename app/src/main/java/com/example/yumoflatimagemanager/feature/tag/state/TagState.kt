@@ -145,7 +145,7 @@ class TagState {
         isTagGroupManagementVisible = false
     }
     
-    fun setSelectedTagGroupId(groupId: Long?) {
+    fun setTagGroupSelection(groupId: Long?) {
         selectedTagGroupId = groupId
     }
     

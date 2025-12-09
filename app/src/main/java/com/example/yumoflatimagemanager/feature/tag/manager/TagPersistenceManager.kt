@@ -159,7 +159,7 @@ class TagPersistenceManager(
     fun restoreTagGroupSelection() {
         val tagConfig = ConfigManager.readTagConfig()
         val savedGroupId = tagConfig.selectedTagGroupId ?: 1L
-        tagState.setSelectedTagGroupId(savedGroupId)
+        tagState.setTagGroupSelection(savedGroupId)
     }
     
     /**

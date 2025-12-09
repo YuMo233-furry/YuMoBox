@@ -90,7 +90,7 @@ class TagViewModelNew(
                 else -> allTagGroups.firstOrNull()?.id
             }
             withContext(Dispatchers.Main) {
-                tagState.setSelectedTagGroupId(targetGroupId)
+                tagState.setTagGroupSelection(targetGroupId)
             }
         }
     }
