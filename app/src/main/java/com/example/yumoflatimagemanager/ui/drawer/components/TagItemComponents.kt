@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,6 +32,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.yumoflatimagemanager.MainViewModel
 import com.example.yumoflatimagemanager.data.local.TagWithChildren
+import sh.calvin.reorderable.ReorderableCollectionItemScope
+import sh.calvin.reorderable.ReorderableListItemScope
+import sh.calvin.reorderable.ReorderableColumn
+import sh.calvin.reorderable.ReorderableItem
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -43,9 +48,9 @@ fun TagItem(
     viewModel: MainViewModel,
     level: Int = 0,
     onClickOutside: (() -> Unit)? = null,
-    useReferencedTagExpansion: Boolean = false
+    useReferencedTagExpansion: Boolean = false,
+    reorderableScope: Any? = null  // 支持 ReorderableCollectionItemScope 或 ReorderableListItemScope
 ) {
-    println("DEBUG: TagItem 被调用 - 标签: ${tagWithChildren.tag.name}, 级别: $level, 排序模式: ${viewModel.isInDragMode}, useReferencedTagExpansion: $useReferencedTagExpansion")
     
     val tag = tagWithChildren.tag
     val isExpanded = if (useReferencedTagExpansion) {
@@ -118,52 +123,66 @@ fun TagItem(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // 展开/折叠图标或引用标签排序按钮
+                // 展开/折叠图标
                 if (hasChildren) {
-                    // 排序模式下显示引用标签排序按钮，普通模式下显示展开/折叠按钮
-                    if (viewModel.isInDragMode) {
-                        IconButton(
-                            onClick = { 
-                                // 显示引用标签排序对话框
-                                viewModel.showReferenceTagSortDialog(tagWithChildren)
-                            },
-                            modifier = Modifier.size(20.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = "引用标签排序",
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    } else {
-                        IconButton(
-                            onClick = { 
-                                // 阻止点击事件冒泡到父容器
-                                if (useReferencedTagExpansion) {
-                                    viewModel.toggleReferencedTagExpanded(tag.id)
-                                } else {
-                                    viewModel.toggleTagExpanded(tag.id)
-                                }
-                            },
-                            modifier = Modifier.size(20.dp)
-                        ) {
-                            val rotation by animateFloatAsState(
-                                targetValue = if (isExpanded) 90f else 0f,
-                                animationSpec = tween(300, easing = FastOutSlowInEasing),
-                                label = "arrow_rotation"
-                            )
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                                contentDescription = if (isExpanded) "折叠" else "展开",
-                                modifier = Modifier
-                                    .size(16.dp)
-                                    .rotate(rotation)
-                            )
-                        }
+                    IconButton(
+                        onClick = { 
+                            // 阻止点击事件冒泡到父容器
+                            if (useReferencedTagExpansion) {
+                                viewModel.toggleReferencedTagExpanded(tag.id)
+                            } else {
+                                viewModel.toggleTagExpanded(tag.id)
+                            }
+                        },
+                        modifier = Modifier.size(20.dp)
+                    ) {
+                        val rotation by animateFloatAsState(
+                            targetValue = if (isExpanded) 90f else 0f,
+                            animationSpec = tween(300, easing = FastOutSlowInEasing),
+                            label = "arrow_rotation"
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = if (isExpanded) "折叠" else "展开",
+                            modifier = Modifier
+                                .size(16.dp)
+                                .rotate(rotation)
+                        )
                     }
                 } else {
                     Spacer(modifier = Modifier.width(20.dp))
+                }
+                
+                // 拖拽手柄（如果有 reorderableScope）
+                if (reorderableScope != null) {
+                    when (reorderableScope) {
+                        is ReorderableCollectionItemScope -> {
+                            Icon(
+                                imageVector = Icons.Default.DragIndicator,
+                                contentDescription = "拖拽排序",
+                                modifier = with(reorderableScope) {
+                                    Modifier
+                                        .size(20.dp)
+                                        .padding(end = 8.dp)
+                                        .longPressDraggableHandle()
+                                },
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                        is ReorderableListItemScope -> {
+                            Icon(
+                                imageVector = Icons.Default.DragIndicator,
+                                contentDescription = "拖拽排序",
+                                modifier = with(reorderableScope) {
+                                    Modifier
+                                        .size(20.dp)
+                                        .padding(end = 8.dp)
+                                        .longPressDraggableHandle()
+                                },
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                        }
+                    }
                 }
                 
                 // 标签名称
@@ -266,7 +285,7 @@ fun TagItem(
         
         // 引用标签列表（带动画）
         AnimatedVisibility(
-            visible = isExpanded && hasChildren && !viewModel.isInDragMode,
+            visible = isExpanded && hasChildren,
             enter = expandVertically(
                 animationSpec = tween(300, easing = FastOutSlowInEasing),
                 expandFrom = Alignment.Top
@@ -276,17 +295,32 @@ fun TagItem(
                 shrinkTowards = Alignment.Top
             ) + fadeOut(animationSpec = tween(300))
         ) {
-            // 排序模式下不显示引用标签树
+            // 使用 ReorderableColumn 实现引用标签的拖拽排序
             Column(modifier = Modifier.padding(start = 24.dp)) {
-                // 正常模式：显示普通引用标签（按 sortOrder 排序）
-                tagWithChildren.referencedTags.sortedBy { it.sortOrder }.forEach { ref ->
-                    ReferencedTagTreeItem(
-                        parentTagId = tagWithChildren.tag.id,
-                        childTagId = ref.childTagId,
-                        viewModel = viewModel,
-                        level = level + 1,
-                        useReferencedTagExpansion = true  // 引用标签始终使用引用展开状态
-                    )
+                val referencedTagsList = remember(tagWithChildren.referencedTags) {
+                    tagWithChildren.referencedTags.sortedBy { it.sortOrder }
+                }
+                
+                ReorderableColumn(
+                    list = referencedTagsList,
+                    onSettle = { fromIndex, toIndex ->
+                        // 更新引用标签的排序
+                        viewModel.moveChildTag(tagWithChildren.tag.id, fromIndex, toIndex)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { index, ref, isDragging ->
+                    key(ref.childTagId) {
+                        ReorderableItem {
+                            ReferencedTagTreeItem(
+                                parentTagId = tagWithChildren.tag.id,
+                                childTagId = ref.childTagId,
+                                viewModel = viewModel,
+                                level = level + 1,
+                                useReferencedTagExpansion = true,  // 引用标签始终使用引用展开状态
+                                reorderableScope = this@ReorderableItem
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -300,7 +334,8 @@ fun ReferencedTagTreeItem(
     childTagId: Long,
     viewModel: MainViewModel,
     level: Int,
-    useReferencedTagExpansion: Boolean = false
+    useReferencedTagExpansion: Boolean = false,
+    reorderableScope: ReorderableListItemScope? = null
 ) {
     var childWithChildren by remember(childTagId) { mutableStateOf<TagWithChildren?>(null) }
     // 监听标签引用刷新触发器，当添加或移除引用时重新加载数据
@@ -337,7 +372,8 @@ fun ReferencedTagTreeItem(
         parentTagId = parentTagId,
         tagWithChildren = childWithChildren!!,
         viewModel = viewModel,
-        useReferencedTagExpansion = useReferencedTagExpansion
+        useReferencedTagExpansion = useReferencedTagExpansion,
+        reorderableScope = reorderableScope
     )
 }
 
@@ -347,7 +383,8 @@ fun SwipeToRemoveReferenceItem(
     parentTagId: Long,
     tagWithChildren: TagWithChildren,
     viewModel: MainViewModel,
-    useReferencedTagExpansion: Boolean = false
+    useReferencedTagExpansion: Boolean = false,
+    reorderableScope: ReorderableListItemScope? = null
 ) {
     var offsetX by remember { mutableStateOf(0f) }
     var isReveal by remember { mutableStateOf(false) }
@@ -412,7 +449,8 @@ fun SwipeToRemoveReferenceItem(
                 tagWithChildren = tagWithChildren,
                 viewModel = viewModel,
                 level = 1,
-                useReferencedTagExpansion = useReferencedTagExpansion
+                useReferencedTagExpansion = useReferencedTagExpansion,
+                reorderableScope = reorderableScope
             )
         }
     }

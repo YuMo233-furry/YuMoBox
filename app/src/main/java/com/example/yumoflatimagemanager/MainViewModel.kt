@@ -105,10 +105,6 @@ class MainViewModel(private val context: Context) : ViewModel() {
     val tagGroupsFlow get() = _tagViewModel.tagGroupsFlow
     // ==============================================
     
-    // 排序模式状态
-    var isInDragMode by mutableStateOf(false)
-        private set
-    
     // 安全模式管理器
     private val secureModeManager = SecureModeManager
     
@@ -3269,14 +3265,6 @@ class MainViewModel(private val context: Context) : ViewModel() {
     // updateAffectedTagsSortOrderForInsertion, updateAffectedTagsSortOrder, reindexAllTags
     // 新的排序逻辑在 insertTagAtPositionInGroup 中处理
     
-    
-    /**
-     * 设置排序模式状态
-     */
-    fun setDragMode(isDragMode: Boolean) {
-        isInDragMode = isDragMode
-        println("DEBUG: 设置排序模式状态: $isDragMode")
-    }
     
     /**
      * 刷新标签列表

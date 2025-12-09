@@ -136,4 +136,5 @@ dependencies {
     implementation(libs.moshi)
     implementation(libs.moshi.kotlin)
     implementation("androidx.paging:paging-compose:3.3.2")
+    implementation("sh.calvin.reorderable:reorderable:3.0.0")
 }

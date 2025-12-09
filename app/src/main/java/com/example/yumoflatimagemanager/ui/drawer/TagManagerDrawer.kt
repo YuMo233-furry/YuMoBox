@@ -54,9 +54,6 @@ import com.example.yumoflatimagemanager.ui.components.DeleteTagDialog
 import com.example.yumoflatimagemanager.ui.drawer.components.TagItem
 import com.example.yumoflatimagemanager.ui.drawer.components.ReferencedTagTreeItem
 import com.example.yumoflatimagemanager.ui.drawer.components.SwipeToDeleteTagItem
-import com.example.yumoflatimagemanager.ui.drawer.components.DraggableTagTreeItem
-import com.example.yumoflatimagemanager.ui.drawer.components.DraggableChildTagItem
-import com.example.yumoflatimagemanager.ui.drawer.components.DraggableTagItem
 import com.example.yumoflatimagemanager.ui.drawer.components.AddTagReferenceDialog
 import com.example.yumoflatimagemanager.ui.drawer.components.TagManagerHeader
 import com.example.yumoflatimagemanager.ui.drawer.components.TagGroupNavigationBar
@@ -196,32 +193,6 @@ private fun TagManagerContent(
     
     // 双击检测状态
     var lastClickTime by remember { mutableStateOf(0L) }
-    
-    // 拖拽排序状态 - 从ViewModel同步初始状态
-    var isDragMode by remember { mutableStateOf(viewModel.isInDragMode) }
-    var localTags by remember { mutableStateOf<List<TagWithChildren>>(emptyList()) }
-    
-    // 同步拖拽模式状态 - 确保本地状态与ViewModel状态一致
-    LaunchedEffect(viewModel.isInDragMode) {
-        isDragMode = viewModel.isInDragMode
-    }
-    
-    // 打开抽屉时重置拖拽模式状态，避免状态残留
-    LaunchedEffect(Unit) {
-        if (viewModel.isInDragMode) {
-            // 如果打开抽屉时发现处于拖拽模式，重置为普通模式
-            viewModel.setDragMode(false)
-        }
-    }
-    
-    // 同步标签列表 - 只在非排序模式下同步，避免拖拽时的数据冲突
-    LaunchedEffect(tags, isDragMode) {
-        if (!isDragMode) {
-            // 添加延迟，确保拖拽结束后的数据更新完成
-            kotlinx.coroutines.delay(50)
-            localTags = tags
-        }
-    }
 
    
     // 异步更新标签统计信息 - 智能缓存版本
@@ -283,11 +254,6 @@ private fun TagManagerContent(
     ) {
         // 标题栏，集成搜索功能
         TagManagerHeader(
-            isDragMode = isDragMode,
-            onDragModeToggle = { newMode ->
-                isDragMode = newMode
-                viewModel.setDragMode(newMode)
-            },
             onResetClick = { showResetConfirmationDialog = true },
             searchQuery = searchQuery,
             onSearchQueryChange = { searchQuery = it }
@@ -311,9 +277,6 @@ private fun TagManagerContent(
         TagListContent(
             viewModel = viewModel,
             filteredTags = filteredTags,
-            localTags = localTags,
-            isDragMode = isDragMode,
-            onLocalTagsChange = { localTags = it },
             modifier = Modifier.weight(1f)
         )
         

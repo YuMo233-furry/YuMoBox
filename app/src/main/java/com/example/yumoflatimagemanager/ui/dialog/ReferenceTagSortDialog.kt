@@ -1,8 +1,6 @@
 package com.example.yumoflatimagemanager.ui.dialog
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -10,13 +8,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.boundsInWindow
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.yumoflatimagemanager.MainViewModel
 import com.example.yumoflatimagemanager.data.local.TagWithChildren
-import com.example.yumoflatimagemanager.ui.drawer.components.DraggableChildTagItem
+import com.example.yumoflatimagemanager.ui.drawer.components.ReferencedTagTreeItem
+import sh.calvin.reorderable.ReorderableColumn
+import sh.calvin.reorderable.ReorderableItem
 import kotlinx.coroutines.runBlocking
 
 /**
@@ -127,9 +125,6 @@ fun ReferenceTagSortDialog(
         )
     }
     
-    // 位置追踪 - 记录每个引用标签项的全局Y坐标范围
-    val childItemPositions = remember { mutableStateMapOf<Int, IntRange>() }
-    
     Dialog(onDismissRequest = onDismiss) {
         Card(
             modifier = Modifier
@@ -192,33 +187,31 @@ fun ReferenceTagSortDialog(
                         }
                     }
                 } else {
-                    LazyColumn(
+                    ReorderableColumn(
+                        list = currentLayer.localReferencedTags,
+                        onSettle = { fromIndex, toIndex ->
+                            // 更新引用标签的排序
+                            viewModel.moveChildTag(currentLayer.parentTag.tag.id, fromIndex, toIndex)
+                            // 更新本地状态
+                            val newTags = currentLayer.localReferencedTags.toMutableList().apply {
+                                add(toIndex, removeAt(fromIndex))
+                            }
+                            updateLocalTags(newTags)
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
-                            .padding(horizontal = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        itemsIndexed(
-                            items = currentLayer.localReferencedTags,
-                            key = { _, tagWithChildren -> "ref_${tagWithChildren.tag.id}" }
-                        ) { index, tagWithChildren ->
-                            Box(
-                                modifier = Modifier.onGloballyPositioned { coordinates ->
-                                    val bounds = coordinates.boundsInWindow()
-                                    childItemPositions[index] = (bounds.top.toInt()..bounds.bottom.toInt())
-                                }
-                            ) {
-                                DraggableChildTagItem(
+                            .padding(horizontal = 16.dp)
+                    ) { index, tagWithChildren, isDragging ->
+                        key(tagWithChildren.tag.id) {
+                            ReorderableItem {
+                                ReferencedTagTreeItem(
                                     parentTagId = currentLayer.parentTag.tag.id,
                                     childTagId = tagWithChildren.tag.id,
                                     viewModel = viewModel,
-                                    refIndex = index,
-                                    totalRefCount = currentLayer.localReferencedTags.size,
                                     level = layerStack.size,
-                                    childItemPositions = childItemPositions,
-                                    onLocalUpdate = updateLocalTags,
-                                    onNavigateToChild = navigateToChild
+                                    useReferencedTagExpansion = true,
+                                    reorderableScope = this@ReorderableItem
                                 )
                             }
                         }

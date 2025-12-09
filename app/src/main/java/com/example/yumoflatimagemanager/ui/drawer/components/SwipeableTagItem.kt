@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.example.yumoflatimagemanager.MainViewModel
 import com.example.yumoflatimagemanager.data.local.TagEntity
 import com.example.yumoflatimagemanager.data.local.TagWithChildren
+import sh.calvin.reorderable.ReorderableCollectionItemScope
 import kotlin.math.roundToInt
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -29,7 +30,9 @@ fun SwipeToDeleteTagItem(
     tagWithChildren: TagWithChildren,
     viewModel: MainViewModel,
     onDelete: (TagEntity) -> Unit,
-    useReferencedTagExpansion: Boolean = false
+    useReferencedTagExpansion: Boolean = false,
+    isDragging: Boolean = false,
+    reorderableScope: ReorderableCollectionItemScope? = null
 ) {
     var offsetX by remember { mutableStateOf(0f) }
     var isDeleteRevealed by remember { mutableStateOf(false) }
@@ -114,7 +117,8 @@ fun SwipeToDeleteTagItem(
                         resetSwipeState()
                     }
                 },
-                useReferencedTagExpansion = useReferencedTagExpansion
+                useReferencedTagExpansion = useReferencedTagExpansion,
+                reorderableScope = reorderableScope
             )
         }
     }
