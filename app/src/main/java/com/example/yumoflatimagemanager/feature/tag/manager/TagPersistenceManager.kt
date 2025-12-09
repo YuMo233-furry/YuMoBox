@@ -37,10 +37,18 @@ class TagPersistenceManager(
     /**
      * 保存当前选中的标签组
      */
-    fun saveTagGroupSelection() {
+    fun saveTagGroupSelection(selectedGroupId: Long? = tagState.selectedTagGroupId) {
         val tagConfig = ConfigManager.readTagConfig()
-        tagConfig.selectedTagGroupId = tagState.selectedTagGroupId ?: 1L // 如果为null，保存默认的"未分组"标签组
+        tagConfig.selectedTagGroupId = selectedGroupId ?: 1L // 如果为null，保存默认的"未分组"标签组
         ConfigManager.writeTagConfig(tagConfig)
+    }
+
+    /**
+     * 读取已保存的标签组选择
+     */
+    fun getSavedTagGroupId(): Long? {
+        val tagConfig = ConfigManager.readTagConfig()
+        return tagConfig.selectedTagGroupId
     }
     
     /**
@@ -150,9 +158,8 @@ class TagPersistenceManager(
      */
     fun restoreTagGroupSelection() {
         val tagConfig = ConfigManager.readTagConfig()
-        val savedGroupId = tagConfig.selectedTagGroupId
-        // 如果保存的是1（默认"未分组"），则直接选中，否则实现重复点击逻辑
-        tagState.selectTagGroup(savedGroupId)
+        val savedGroupId = tagConfig.selectedTagGroupId ?: 1L
+        tagState.setSelectedTagGroupId(savedGroupId)
     }
     
     /**

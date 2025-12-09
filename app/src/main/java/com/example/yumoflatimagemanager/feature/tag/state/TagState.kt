@@ -145,6 +145,10 @@ class TagState {
         isTagGroupManagementVisible = false
     }
     
+    fun setSelectedTagGroupId(groupId: Long?) {
+        selectedTagGroupId = groupId
+    }
+    
     // ==================== 标签组状态更新方法 ====================
     
     fun selectTagGroup(groupId: Long) {
