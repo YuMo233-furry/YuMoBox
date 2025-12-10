@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.Settings
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import android.os.Environment
@@ -20,6 +21,8 @@ object PermissionsManager {
     private const val TAG = "PermissionsManager"
     private const val STORAGE_PERMISSION = Manifest.permission.READ_EXTERNAL_STORAGE
     private const val WRITE_PERMISSION = Manifest.permission.WRITE_EXTERNAL_STORAGE
+    private const val PREFS_NAME = "permission_prefs"
+    private const val KEY_MANAGE_ALL_FILES_GRANTED = "manage_all_files_granted"
     
     // 定义所需的权限
     private val REQUIRED_PERMISSIONS = when {
@@ -62,24 +65,15 @@ object PermissionsManager {
         // Android 11-12 (R-S): 优先使用细粒度权限，MANAGE_EXTERNAL_STORAGE 可选
         else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             Log.d(TAG, "Android 11-12设备，检查READ_EXTERNAL_STORAGE权限")
-            // 对于图片管理器，READ_EXTERNAL_STORAGE 通常足够
-            // MANAGE_EXTERNAL_STORAGE 是可选的，仅在需要完整文件系统访问时才需要
-            val hasReadPermission = REQUIRED_PERMISSIONS.all { 
+            if (Environment.isExternalStorageManager()) {
+                markManageAllFilesGranted(context)
+                return true
+            }
+            // 对于图片管理器，READ_EXTERNAL_STORAGE 仍然允许基本读取
+            val hasReadPermission = REQUIRED_PERMISSIONS.all {
                 ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
             }
-            
-            if (hasReadPermission) {
-                return true
-            }
-            
-            // 如果没有READ权限，检查是否有MANAGE权限（向后兼容）
-            val hasManagePermission = Environment.isExternalStorageManager()
-            if (hasManagePermission) {
-                Log.d(TAG, "已授予MANAGE_EXTERNAL_STORAGE权限")
-                return true
-            }
-            
-            return false
+            return hasReadPermission
         } 
         // Android 10 (Q): 直接检查 READ_EXTERNAL_STORAGE
         else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -124,33 +118,29 @@ object PermissionsManager {
     
     /**
      * 检查是否需要请求管理所有文件权限
-     * Android 13+ 优化：仅在明确需要完整文件系统访问时返回 true
-     * 对于普通图片管理，返回 false（使用细粒度权限即可）
      */
     fun needsManageAllFilesPermission(context: Context): Boolean {
-        // Android 13+: 使用细粒度媒体权限，不需要 MANAGE_EXTERNAL_STORAGE
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return false
+        val granted = Environment.isExternalStorageManager()
+        if (granted) {
+            markManageAllFilesGranted(context)
             return false
         }
-        
-        // Android 11-12: 检查是否已有必要的媒体权限
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // 如果已经有READ_EXTERNAL_STORAGE权限，就不需要MANAGE权限
-            val hasReadPermission = ContextCompat.checkSelfPermission(
-                context, 
-                Manifest.permission.READ_EXTERNAL_STORAGE
-            ) == PackageManager.PERMISSION_GRANTED
-            
-            if (hasReadPermission) {
-                return false // 已有足够权限
-            }
-            
-            // 如果没有READ权限且没有MANAGE权限，返回 false（让用户先请求READ权限）
-            return false
-        }
-        
-        // Android 10 及以下：不需要 MANAGE_EXTERNAL_STORAGE
-        return false
+        return true
+    }
+    
+    /**
+     * 是否已授予管理所有文件权限（便于业务层复用）
+     */
+    fun isManageAllFilesGranted(): Boolean {
+        return Build.VERSION.SDK_INT < Build.VERSION_CODES.R || Environment.isExternalStorageManager()
+    }
+    
+    private fun markManageAllFilesGranted(context: Context) {
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .edit()
+            .putBoolean(KEY_MANAGE_ALL_FILES_GRANTED, true)
+            .apply()
     }
     
     /**
@@ -173,22 +163,38 @@ object PermissionsManager {
      * 针对不同Android版本有不同的实现
      */
     fun openManageAllFilesPermissionSettings(context: Context) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            // Android 11及以上版本，使用专用的设置页面
-            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-            intent.data = android.net.Uri.parse("package:${context.packageName}")
-            context.startActivity(intent)
+        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+                data = android.net.Uri.parse("package:${context.packageName}")
+            }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10设备，引导到应用详情页面
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-            intent.data = android.net.Uri.parse("package:${context.packageName}")
-            context.startActivity(intent)
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = android.net.Uri.parse("package:${context.packageName}")
+            }
         } else {
-            // Android 10以下设备，也引导到应用详情页面
-            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-            intent.data = android.net.Uri.parse("package:${context.packageName}")
-            context.startActivity(intent)
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = android.net.Uri.parse("package:${context.packageName}")
+            }
         }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        context.startActivity(intent)
+    }
+    
+    /**
+     * 跳转到“管理所有文件”设置页（使用 ActivityResultLauncher 便于回调）
+     */
+    fun requestManageAllFilesPermission(
+        activity: ComponentActivity,
+        launcher: ActivityResultLauncher<Intent>
+    ) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return
+        val packageUri = android.net.Uri.parse("package:${activity.packageName}")
+        val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION).apply {
+            data = packageUri
+        }
+        val fallback = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+        val canHandleAppIntent = intent.resolveActivity(activity.packageManager) != null
+        launcher.launch(if (canHandleAppIntent) intent else fallback)
     }
     
     /**

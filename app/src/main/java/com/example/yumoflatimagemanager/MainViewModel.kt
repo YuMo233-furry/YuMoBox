@@ -2,6 +2,7 @@ package com.example.yumoflatimagemanager
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.Environment
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,6 +56,7 @@ import kotlinx.coroutines.Job
 import android.util.Log
 import android.net.Uri
 import androidx.core.content.FileProvider
+import android.widget.Toast
 import java.io.File
 
 // 缓存被删除标签的数据类
@@ -2247,6 +2249,36 @@ class MainViewModel(private val context: Context) : ViewModel() {
     }
     
     /**
+     * 确保存储权限（特别是“管理所有文件”）满足文件操作需求
+     */
+    private fun ensureManageAllFilesPermissionForFileOps(): Boolean {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !PermissionsManager.isManageAllFilesGranted()) {
+            viewModelScope.launch(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    "需要“管理所有文件”权限才能执行此操作，请在设置中授权",
+                    Toast.LENGTH_LONG
+                ).show()
+                PermissionsManager.openManageAllFilesPermissionSettings(context)
+            }
+            return false
+        }
+        
+        if (!PermissionsManager.hasRequiredPermissions(context)) {
+            viewModelScope.launch(Dispatchers.Main) {
+                Toast.makeText(
+                    context,
+                    "存储权限不足，请授予后重试",
+                    Toast.LENGTH_LONG
+                ).show()
+            }
+            return false
+        }
+        
+        return true
+    }
+    
+    /**
      * 检查是否拥有所有必要的权限
      */
     fun hasRequiredPermissions(): Boolean {
@@ -2879,6 +2911,10 @@ class MainViewModel(private val context: Context) : ViewModel() {
      */
     fun renameAlbum(album: Album, newName: String): Boolean {
         if (album.type != com.example.yumoflatimagemanager.data.AlbumType.CUSTOM) {
+            return false
+        }
+        
+        if (!ensureManageAllFilesPermissionForFileOps()) {
             return false
         }
 
@@ -3789,6 +3825,11 @@ class MainViewModel(private val context: Context) : ViewModel() {
             return
         }
         
+        if (!ensureManageAllFilesPermissionForFileOps()) {
+            showMoveCopyDialog = false
+            return
+        }
+        
         showMoveCopyDialog = false
         showOperationProgressDialog = true
         operationProgress = 0
@@ -3866,6 +3907,11 @@ class MainViewModel(private val context: Context) : ViewModel() {
         val selectedImages = selectedImages
         
         if (selectedImages.isEmpty()) {
+            return
+        }
+        
+        if (!ensureManageAllFilesPermissionForFileOps()) {
+            showMoveCopyDialog = false
             return
         }
         

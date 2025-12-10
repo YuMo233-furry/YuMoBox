@@ -7,7 +7,13 @@
     <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
     
     <!-- Android 10-12 (API 29-32) 读取权限 -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32"
+        tools:ignore="ScopedStorage" />
     
     <!-- 震动权限 - 用于触觉反馈 -->
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -18,11 +24,23 @@
         Android 13+ 设备使用细粒度媒体权限（READ_MEDIA_IMAGES/VIDEO）即可正常工作
         仅在需要完整文件系统访问时才会请求此权限
     -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" 
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 查询设置页意图，便于跳转请求“管理所有文件”权限 -->
+    <queries>
+        <intent>
+            <action android:name="android.settings.MANAGE_APP_ALL_FILES_ACCESS_PERMISSION" />
+            <data android:scheme="package" />
+        </intent>
+        <intent>
+            <action android:name="android.settings.MANAGE_ALL_FILES_ACCESS_PERMISSION" />
+        </intent>
+    </queries>
 
     <application
         android:name=".AppApplication"

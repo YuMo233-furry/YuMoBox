@@ -118,6 +118,23 @@ class MainActivity : ComponentActivity() {
         }
     }
     
+    // 管理所有文件权限启动器
+    private val manageAllFilesLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        if (PermissionsManager.isManageAllFilesGranted()) {
+            lifecycleScope.launch {
+                viewModel?.loadMediaData()
+            }
+        } else {
+            Toast.makeText(
+                this,
+                "需要“管理所有文件”权限以使用完整功能，请在设置中授权",
+                Toast.LENGTH_LONG
+            ).show()
+        }
+    }
+    
     // 水印预览启动器 - 必须作为成员变量注册
     private val watermarkPreviewLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -188,7 +205,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 // 应用主UI组件
-                App(viewModel, drawerController, watermarkPreviewLauncher)
+                App(viewModel, drawerController, watermarkPreviewLauncher, manageAllFilesLauncher)
             }
         }
     }
@@ -253,7 +270,7 @@ class MainActivity : ComponentActivity() {
      * 应用的主Compose组件
      */
     @Composable
-    fun App(viewModel: MainViewModel?, drawerController: DrawerController, watermarkPreviewLauncher: ActivityResultLauncher<Intent>) {
+    fun App(viewModel: MainViewModel?, drawerController: DrawerController, watermarkPreviewLauncher: ActivityResultLauncher<Intent>, manageAllFilesLauncher: ActivityResultLauncher<Intent>) {
         // 如果ViewModel还未初始化，显示加载界面
         if (viewModel == null) {
             Box(
@@ -293,8 +310,8 @@ class MainActivity : ComponentActivity() {
     val showUndoDeleteTagGroupMessage = tagViewModel.showUndoDeleteTagGroupMessage
     val deletedTagGroupName = tagViewModel.deletedTagGroupName
     
-    // 检查并请求权限
-    CheckAndRequestPermissions(viewModel)
+        // 检查并请求权限
+        CheckAndRequestPermissions(viewModel, manageAllFilesLauncher)
     
     // 构建应用UI
     Box(modifier = Modifier.fillMaxSize()) {
@@ -621,7 +638,10 @@ class MainActivity : ComponentActivity() {
  * 检查并请求必要的权限
  */
 @Composable
-private fun CheckAndRequestPermissions(viewModel: MainViewModel) {
+private fun CheckAndRequestPermissions(
+    viewModel: MainViewModel,
+    manageAllFilesLauncher: ActivityResultLauncher<Intent>
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     
@@ -639,7 +659,12 @@ private fun CheckAndRequestPermissions(viewModel: MainViewModel) {
                     Toast.LENGTH_LONG
                 ).show()
                 // 打开系统设置页面
-                PermissionsManager.openManageAllFilesPermissionSettings(context)
+                val activity = context as? ComponentActivity
+                if (activity != null) {
+                    PermissionsManager.requestManageAllFilesPermission(activity, manageAllFilesLauncher)
+                } else {
+                    PermissionsManager.openManageAllFilesPermissionSettings(context)
+                }
             } else {
                 // 不需要管理所有文件权限，但可能需要其他媒体权限
                 android.util.Log.d("MainActivity", "检查权限状态...")
