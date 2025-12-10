@@ -43,6 +43,32 @@
 -keep class com.example.yumoflatimagemanager.data.model.TagGroupData { *; }
 -keepclassmembers class com.example.yumoflatimagemanager.data.model.TagGroupData { *; }
 
+# Keep config data models so JSON field names are not obfuscated
+-keepclassmembers class com.example.yumoflatimagemanager.data.SecurityConfig { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.OrientationGridColumns { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.AlbumConfig { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.ScrollPosition { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.TagConfig { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.WatermarkConfig { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.MigrationConfig { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.SortConfig { *; }
+
+# Keep Room entities/relations to avoid column/field rename issues
+-keepclassmembers class com.example.yumoflatimagemanager.data.local.TagEntity { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.local.MediaTagCrossRef { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.local.TagReferenceEntity { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.local.TagWithChildren { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.local.TagGroupEntity { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.local.TagGroupTagCrossRef { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.local.TagGroupWithTags { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.WatermarkPreset { *; }
+
+# Generic Room keep rule for annotated members
+-keepclassmembers class * {
+    @androidx.room.* <fields>;
+    @androidx.room.* <methods>;
+}
+
 # Keep data classes with @Serializable
 -keep @kotlinx.serialization.Serializable class * {
     <fields>;
