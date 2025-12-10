@@ -35,6 +35,12 @@
 -keep class retrofit2.** { *; }
 -keep class com.squareup.moshi.** { *; }
 
+# Keep enums used by Moshi (avoid missing enum constants after obfuscation)
+-keep class com.example.yumoflatimagemanager.data.SortType { *; }
+-keepclassmembers enum com.example.yumoflatimagemanager.data.SortType { *; }
+-keep class com.example.yumoflatimagemanager.data.SortDirection { *; }
+-keepclassmembers enum com.example.yumoflatimagemanager.data.SortDirection { *; }
+
 # Keep data classes with @Serializable
 -keep @kotlinx.serialization.Serializable class * {
     <fields>;
