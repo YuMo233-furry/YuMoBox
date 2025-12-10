@@ -104,8 +104,9 @@ class MainActivity : ComponentActivity() {
     ) { permissions ->
         val isGranted = permissions.entries.all { it.value }
         if (isGranted) {
-            // 权限被授予，加载媒体数据
+            // 权限被授予，先重新加载配置再加载媒体数据
             lifecycleScope.launch {
+                viewModel?.onStoragePermissionGranted()
                 viewModel?.loadMediaData()
             }
         } else {
@@ -124,6 +125,7 @@ class MainActivity : ComponentActivity() {
     ) {
         if (PermissionsManager.isManageAllFilesGranted()) {
             lifecycleScope.launch {
+                viewModel?.onStoragePermissionGranted()
                 viewModel?.loadMediaData()
             }
         } else {
@@ -178,8 +180,8 @@ class MainActivity : ComponentActivity() {
         com.example.yumoflatimagemanager.startup.StartupPerformanceMonitor.startStage("Activity创建")
         
         // 应用重启时清除滚动位置（只在真正的应用启动时清除）
-        if (savedInstanceState == null) {
-            // 这是应用的新启动，不是配置变化
+        if (savedInstanceState == null && PermissionsManager.hasRequiredPermissions(this)) {
+            // 这是应用的新启动，不是配置变化，且已具备权限才处理滚动位置
             val tempViewModel = MainViewModel(this)
             tempViewModel.clearScrollPositionOnAppRestart()
         }

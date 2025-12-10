@@ -31,6 +31,13 @@ object ConfigManager {
     private const val FILE_NAME_WATERMARK = "watermark.json"
     private const val FILE_NAME_MIGRATION = "migration.json"
     
+    private enum class LoadState {
+        UNINITIALIZED,
+        LOADED_FROM_DISK,
+        DEFAULT_CREATED,
+        FALLBACK_DUE_TO_READ_ERROR
+    }
+    
     // Moshi实例
     private val moshi: Moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
@@ -41,6 +48,12 @@ object ConfigManager {
     private var albumConfigCache: AlbumConfig? = null
     private var tagConfigCache: TagConfig? = null
     private var watermarkConfigCache: WatermarkConfig? = null
+    
+    // 记录配置加载状态，用于避免在读取失败后用空数据覆盖已有文件
+    private var securityLoadState = LoadState.UNINITIALIZED
+    private var albumLoadState = LoadState.UNINITIALIZED
+    private var tagLoadState = LoadState.UNINITIALIZED
+    private var watermarkLoadState = LoadState.UNINITIALIZED
     
     /**
      * 获取配置存储根目录
@@ -120,8 +133,18 @@ object ConfigManager {
      */
     fun readSecurityConfig(): SecurityConfig {
         if (securityConfigCache == null) {
-            securityConfigCache = readConfig(FILE_NAME_SECURITY, SecurityConfig::class.java)
-                ?: SecurityConfig()
+            val configFromDisk = readConfig(FILE_NAME_SECURITY, SecurityConfig::class.java)
+            if (configFromDisk != null) {
+                securityLoadState = LoadState.LOADED_FROM_DISK
+                securityConfigCache = configFromDisk
+            } else {
+                securityLoadState = if (getConfigFile(FILE_NAME_SECURITY).exists()) {
+                    LoadState.FALLBACK_DUE_TO_READ_ERROR
+                } else {
+                    LoadState.DEFAULT_CREATED
+                }
+                securityConfigCache = SecurityConfig()
+            }
         }
         return securityConfigCache!!
     }
@@ -132,9 +155,26 @@ object ConfigManager {
      * @return 是否写入成功
      */
     fun writeSecurityConfig(config: SecurityConfig): Boolean {
+        if (securityLoadState == LoadState.FALLBACK_DUE_TO_READ_ERROR) {
+            val diskConfig = readConfig(FILE_NAME_SECURITY, SecurityConfig::class.java)
+            when {
+                diskConfig != null -> {
+                    securityLoadState = LoadState.LOADED_FROM_DISK
+                    securityConfigCache = diskConfig
+                    return false // 磁盘数据可读，优先让调用方重新加载
+                }
+                getConfigFile(FILE_NAME_SECURITY).exists() -> {
+                    Log.w(TAG, "Skip writing $FILE_NAME_SECURITY to avoid overwriting unreadable existing data")
+                    return false
+                }
+                else -> securityLoadState = LoadState.DEFAULT_CREATED
+            }
+        }
+        
         val result = writeConfig(FILE_NAME_SECURITY, config)
         if (result) {
             securityConfigCache = config
+            securityLoadState = LoadState.LOADED_FROM_DISK
         }
         return result
     }
@@ -159,6 +199,14 @@ object ConfigManager {
                     // 如果读取失败，可能是旧格式，尝试迁移
                     config = tryMigrateOldFormat()
                 }
+                
+                if (config != null) {
+                    albumLoadState = LoadState.LOADED_FROM_DISK
+                } else {
+                    albumLoadState = LoadState.FALLBACK_DUE_TO_READ_ERROR
+                }
+            } else {
+                albumLoadState = LoadState.DEFAULT_CREATED
             }
             
             albumConfigCache = config ?: AlbumConfig()
@@ -206,9 +254,26 @@ object ConfigManager {
      * @return 是否写入成功
      */
     fun writeAlbumConfig(config: AlbumConfig): Boolean {
+        if (albumLoadState == LoadState.FALLBACK_DUE_TO_READ_ERROR) {
+            val diskConfig = readConfig(FILE_NAME_ALBUM, AlbumConfig::class.java)
+            when {
+                diskConfig != null -> {
+                    albumLoadState = LoadState.LOADED_FROM_DISK
+                    albumConfigCache = diskConfig
+                    return false // 先让调用方重新获取最新配置，避免覆盖
+                }
+                getConfigFile(FILE_NAME_ALBUM).exists() -> {
+                    Log.w(TAG, "Skip writing $FILE_NAME_ALBUM to avoid overwriting unreadable existing data")
+                    return false
+                }
+                else -> albumLoadState = LoadState.DEFAULT_CREATED
+            }
+        }
+        
         val result = writeConfig(FILE_NAME_ALBUM, config)
         if (result) {
             albumConfigCache = config
+            albumLoadState = LoadState.LOADED_FROM_DISK
         }
         return result
     }
@@ -221,8 +286,18 @@ object ConfigManager {
      */
     fun readTagConfig(): TagConfig {
         if (tagConfigCache == null) {
-            tagConfigCache = readConfig(FILE_NAME_TAG, TagConfig::class.java)
-                ?: TagConfig()
+            val configFromDisk = readConfig(FILE_NAME_TAG, TagConfig::class.java)
+            if (configFromDisk != null) {
+                tagLoadState = LoadState.LOADED_FROM_DISK
+                tagConfigCache = configFromDisk
+            } else {
+                tagLoadState = if (getConfigFile(FILE_NAME_TAG).exists()) {
+                    LoadState.FALLBACK_DUE_TO_READ_ERROR
+                } else {
+                    LoadState.DEFAULT_CREATED
+                }
+                tagConfigCache = TagConfig()
+            }
         }
         return tagConfigCache!!
     }
@@ -233,9 +308,26 @@ object ConfigManager {
      * @return 是否写入成功
      */
     fun writeTagConfig(config: TagConfig): Boolean {
+        if (tagLoadState == LoadState.FALLBACK_DUE_TO_READ_ERROR) {
+            val diskConfig = readConfig(FILE_NAME_TAG, TagConfig::class.java)
+            when {
+                diskConfig != null -> {
+                    tagLoadState = LoadState.LOADED_FROM_DISK
+                    tagConfigCache = diskConfig
+                    return false
+                }
+                getConfigFile(FILE_NAME_TAG).exists() -> {
+                    Log.w(TAG, "Skip writing $FILE_NAME_TAG to avoid overwriting unreadable existing data")
+                    return false
+                }
+                else -> tagLoadState = LoadState.DEFAULT_CREATED
+            }
+        }
+        
         val result = writeConfig(FILE_NAME_TAG, config)
         if (result) {
             tagConfigCache = config
+            tagLoadState = LoadState.LOADED_FROM_DISK
         }
         return result
     }
@@ -248,8 +340,18 @@ object ConfigManager {
      */
     fun readWatermarkConfig(): WatermarkConfig {
         if (watermarkConfigCache == null) {
-            watermarkConfigCache = readConfig(FILE_NAME_WATERMARK, WatermarkConfig::class.java)
-                ?: WatermarkConfig()
+            val configFromDisk = readConfig(FILE_NAME_WATERMARK, WatermarkConfig::class.java)
+            if (configFromDisk != null) {
+                watermarkLoadState = LoadState.LOADED_FROM_DISK
+                watermarkConfigCache = configFromDisk
+            } else {
+                watermarkLoadState = if (getConfigFile(FILE_NAME_WATERMARK).exists()) {
+                    LoadState.FALLBACK_DUE_TO_READ_ERROR
+                } else {
+                    LoadState.DEFAULT_CREATED
+                }
+                watermarkConfigCache = WatermarkConfig()
+            }
         }
         return watermarkConfigCache!!
     }
@@ -260,9 +362,26 @@ object ConfigManager {
      * @return 是否写入成功
      */
     fun writeWatermarkConfig(config: WatermarkConfig): Boolean {
+        if (watermarkLoadState == LoadState.FALLBACK_DUE_TO_READ_ERROR) {
+            val diskConfig = readConfig(FILE_NAME_WATERMARK, WatermarkConfig::class.java)
+            when {
+                diskConfig != null -> {
+                    watermarkLoadState = LoadState.LOADED_FROM_DISK
+                    watermarkConfigCache = diskConfig
+                    return false
+                }
+                getConfigFile(FILE_NAME_WATERMARK).exists() -> {
+                    Log.w(TAG, "Skip writing $FILE_NAME_WATERMARK to avoid overwriting unreadable existing data")
+                    return false
+                }
+                else -> watermarkLoadState = LoadState.DEFAULT_CREATED
+            }
+        }
+        
         val result = writeConfig(FILE_NAME_WATERMARK, config)
         if (result) {
             watermarkConfigCache = config
+            watermarkLoadState = LoadState.LOADED_FROM_DISK
         }
         return result
     }
@@ -311,6 +430,10 @@ object ConfigManager {
         albumConfigCache = null
         tagConfigCache = null
         watermarkConfigCache = null
+        securityLoadState = LoadState.UNINITIALIZED
+        albumLoadState = LoadState.UNINITIALIZED
+        tagLoadState = LoadState.UNINITIALIZED
+        watermarkLoadState = LoadState.UNINITIALIZED
     }
     
     /**

@@ -1806,6 +1806,10 @@ class MainViewModel(private val context: Context) : ViewModel() {
     
     // 主页面相册列表的网格列数
     var albumsGridColumnCount by mutableStateOf(3)
+
+    private fun hasStoragePermission(): Boolean {
+        return PermissionsManager.hasRequiredPermissions(context)
+    }
     
     /**
      * 获取当前屏幕方向
@@ -1819,6 +1823,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
      * 根据屏幕方向更新主页面网格列数
      */
     fun updateAlbumsGridColumnCountForOrientation() {
+        if (!hasStoragePermission()) return
         val orientation = getCurrentOrientation()
         val albumConfig = ConfigManager.readAlbumConfig()
         albumsGridColumnCount = when (orientation) {
@@ -1835,6 +1840,7 @@ class MainViewModel(private val context: Context) : ViewModel() {
      * 根据屏幕方向更新当前相册网格列数
      */
     private fun updateGridColumnCountForOrientation(album: Album) {
+        if (!hasStoragePermission()) return
         val orientation = getCurrentOrientation()
         val albumConfig = ConfigManager.readAlbumConfig()
         val gridColumns = albumConfig.gridColumns[album.id]
@@ -2291,6 +2297,18 @@ class MainViewModel(private val context: Context) : ViewModel() {
     fun requestPermission() {
         val permissions = PermissionsManager.getPermissionsToRequest(context)
         permissionLauncher.launch(permissions)
+    }
+
+    /**
+     * 存储权限授予后的回调
+     * 重新加载配置，避免默认值覆盖磁盘数据
+     */
+    fun onStoragePermissionGranted() {
+        ConfigManager.clearCache()
+        // 重新加载标签与网格配置到内存
+        restoreAllTagStates()
+        updateAlbumsGridColumnCountForOrientation()
+        selectedAlbum?.let { updateGridColumnCountForOrientation(it) }
     }
     
     /**
