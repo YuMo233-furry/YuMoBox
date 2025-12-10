@@ -56,9 +56,17 @@ object TagGroupFileManager {
      * 初始化默认的"未分组"标签组
      */
     fun initializeDefaultTagGroup() {
-        // 检查是否已存在"未分组"标签组
-        val allGroups = getAllTagGroups()
-        if (allGroups.none { it.name == "未分组" || it.isDefault }) {
+        // 检查是否已存在"未分组"标签组，遇到异常时兜底创建
+        val allGroups = runCatching { getAllTagGroups() }
+            .onFailure { Log.e(TAG, "Failed to load tag groups, will recreate default", it) }
+            .getOrDefault(emptyList())
+        val hasDefault = allGroups.any { group ->
+            // 防御空字段，避免混淆/坏数据导致崩溃
+            val name = group.name
+            val isDefault = group.isDefault
+            (name == "未分组") || isDefault
+        }
+        if (!hasDefault) {
             val defaultGroup = TagGroupData(
                 id = 1,
                 name = "未分组",

@@ -40,6 +40,8 @@
 -keepclassmembers enum com.example.yumoflatimagemanager.data.SortType { *; }
 -keep class com.example.yumoflatimagemanager.data.SortDirection { *; }
 -keepclassmembers enum com.example.yumoflatimagemanager.data.SortDirection { *; }
+-keep class com.example.yumoflatimagemanager.data.model.TagGroupData { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.model.TagGroupData { *; }
 
 # Keep data classes with @Serializable
 -keep @kotlinx.serialization.Serializable class * {
