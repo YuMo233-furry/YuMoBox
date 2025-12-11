@@ -3292,29 +3292,29 @@ class MainViewModel(private val context: Context) : ViewModel() {
     
     /**
      * 分组内移动标签排序
-     * @param fromIndex 源位置索引
-     * @param toIndex 目标位置索引
+     * @param fromIndex 源位置索引（基于可见标签列表）
+     * @param toIndex 目标位置索引（基于可见标签列表）
      * @param isWithReferences 是否是有引用标签的本体标签组
+     * @param visibleTags 当前可见的标签列表（已过滤，如标签组过滤、搜索过滤等）
      */
-    fun moveTagInGroup(fromIndex: Int, toIndex: Int, isWithReferences: Boolean) {
+    fun moveTagInGroup(
+        fromIndex: Int, 
+        toIndex: Int, 
+        isWithReferences: Boolean,
+        visibleTags: List<com.example.yumoflatimagemanager.data.local.TagWithChildren>
+    ) {
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                // 获取当前标签列表
-                val currentTags = tagsFlow.first()
-                val groupTags = if (isWithReferences) {
-                    currentTags.filter { it.referencedTags.isNotEmpty() }
-                } else {
-                    currentTags.filter { it.referencedTags.isEmpty() }
-                }
-                
-                if (fromIndex < 0 || fromIndex >= groupTags.size || 
-                    toIndex < 0 || toIndex >= groupTags.size || 
+                // 使用传入的可见标签列表，而不是重新获取和过滤
+                // 这样可以确保排序只基于当前显示的标签，忽略被过滤掉的标签
+                if (fromIndex < 0 || fromIndex >= visibleTags.size || 
+                    toIndex < 0 || toIndex >= visibleTags.size || 
                     fromIndex == toIndex) {
                     return@launch
                 }
                 
                 // 在组内实现插入逻辑
-                insertTagAtPositionInGroup(groupTags, fromIndex, toIndex, isWithReferences)
+                insertTagAtPositionInGroup(visibleTags, fromIndex, toIndex, isWithReferences)
                 
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -3324,44 +3324,62 @@ class MainViewModel(private val context: Context) : ViewModel() {
     
     /**
      * 分组内实现插入逻辑：将标签插入到目标位置，使用分组排序值
+     * 基于可见标签的排序值计算，确保只考虑当前显示的标签（如标签组过滤后的标签）
      */
     private suspend fun insertTagAtPositionInGroup(
-        groupTags: List<com.example.yumoflatimagemanager.data.local.TagWithChildren>,
+        visibleTags: List<com.example.yumoflatimagemanager.data.local.TagWithChildren>,
         fromIndex: Int,
         toIndex: Int,
         isWithReferences: Boolean
     ) {
         if (fromIndex == toIndex) return
         
-        val movedTag = groupTags[fromIndex]
+        val movedTag = visibleTags[fromIndex]
         
-        // 计算新的排序值（使用新的分组排序字段）
-        val newSortOrder = 1000 + toIndex * 1000  // 从1000开始，间隔1000
+        // 获取排序值字段
+        val getSortOrder: (com.example.yumoflatimagemanager.data.local.TagEntity) -> Int = 
+            if (isWithReferences) { tag -> tag.referencedGroupSortOrder } else { tag -> tag.normalGroupSortOrder }
         
-        // 更新被移动标签的排序值（使用对应的分组排序字段）
+        // 基于可见标签的排序值计算新的排序值
+        val newSortOrder = when {
+            toIndex == 0 -> {
+                // 移动到第一个位置：使用第一个可见标签的排序值 - 1000
+                val firstTag = visibleTags[0]
+                val firstSortOrder = getSortOrder(firstTag.tag)
+                firstSortOrder - 1000
+            }
+            toIndex >= visibleTags.size - 1 || toIndex >= visibleTags.size -> {
+                // 移动到最后一个位置：使用最后一个可见标签的排序值 + 1000
+                val lastTag = visibleTags[visibleTags.size - 1]
+                val lastSortOrder = getSortOrder(lastTag.tag)
+                lastSortOrder + 1000
+            }
+            else -> {
+                // 移动到中间位置：在前后两个可见标签的排序值之间插入
+                val prevTag = visibleTags[toIndex - 1]
+                val nextTag = visibleTags[toIndex]
+                val prevSortOrder = getSortOrder(prevTag.tag)
+                val nextSortOrder = getSortOrder(nextTag.tag)
+                
+                // 如果间隔足够大，使用平均值；否则使用固定间隔
+                val gap = nextSortOrder - prevSortOrder
+                if (gap > 2) {
+                    // 间隔足够大，使用平均值
+                    (prevSortOrder + nextSortOrder) / 2
+                } else {
+                    // 间隔太小，使用固定间隔
+                    prevSortOrder + 500
+                }
+            }
+        }
+        
+        // 只更新被移动标签的排序值
         if (isWithReferences) {
             tagRepo.updateReferencedGroupSortOrder(movedTag.tag.id, newSortOrder)
         } else {
             tagRepo.updateNormalGroupSortOrder(movedTag.tag.id, newSortOrder)
         }
-        println("DEBUG: 分组内更新标签 ${movedTag.tag.name} 的${if (isWithReferences) "引用组" else "普通组"}排序值为 $newSortOrder")
-        
-        // 更新组内其他标签的排序值
-        groupTags.forEachIndexed { index, tagWithChildren ->
-            if (index != fromIndex) {
-                val adjustedIndex = if (index > fromIndex && index <= toIndex) index - 1
-                else if (index < fromIndex && index >= toIndex) index + 1
-                else index
-                
-                val adjustedSortOrder = 1000 + adjustedIndex * 1000
-                if (isWithReferences) {
-                    tagRepo.updateReferencedGroupSortOrder(tagWithChildren.tag.id, adjustedSortOrder)
-                } else {
-                    tagRepo.updateNormalGroupSortOrder(tagWithChildren.tag.id, adjustedSortOrder)
-                }
-                println("DEBUG: 分组内调整标签 ${tagWithChildren.tag.name} 的${if (isWithReferences) "引用组" else "普通组"}排序值为 $adjustedSortOrder")
-            }
-        }
+        println("DEBUG: 分组内更新标签 ${movedTag.tag.name} 的${if (isWithReferences) "引用组" else "普通组"}排序值为 $newSortOrder（基于可见标签排序）")
     }
     
     /**

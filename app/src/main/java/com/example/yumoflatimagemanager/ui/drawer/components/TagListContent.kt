@@ -85,26 +85,70 @@ private fun ReorderableSectionedTagList(
             SectionType.WithRefs -> {
                 val fromIdx = fromItem.indexInSection ?: return@rememberReorderableLazyListState
                 val toIdx = toItem.indexInSection ?: return@rememberReorderableLazyListState
+                // 保存拖拽前的可见标签列表和标签ID，用于计算排序值
+                val originalVisibleTags = tagsWithReferences
+                val movedTagId = localWithRefs[fromIdx].tag.id
+                
+                // 在原始列表中找到对应的索引
+                val originalFromIdx = originalVisibleTags.indexOfFirst { it.tag.id == movedTagId }
+                if (originalFromIdx == -1) return@rememberReorderableLazyListState
+                
+                // 计算目标位置在原始列表中的索引
+                // 需要找到 toIdx 位置对应的标签ID，然后在原始列表中找到该标签的位置
+                val originalToIdx = if (toIdx < localWithRefs.size) {
+                    // 找到目标位置对应的标签ID，然后在原始列表中找到该标签
+                    val targetTagId = localWithRefs[toIdx].tag.id
+                    val idx = originalVisibleTags.indexOfFirst { it.tag.id == targetTagId }
+                    if (idx == -1) return@rememberReorderableLazyListState
+                    idx
+                } else {
+                    // 移动到末尾：使用列表大小作为索引（会在函数中处理）
+                    originalVisibleTags.size
+                }
+                
                 val updated = localWithRefs.toMutableList().apply {
                     add(toIdx, removeAt(fromIdx))
                 }
                 localWithRefs = updated
                 withRefChannel.tryReceive()
                 coroutineScope.launch {
-                    viewModel.moveTagInGroup(fromIdx, toIdx, true)
+                    // 传入原始可见标签列表和对应的索引，确保排序基于当前显示的标签
+                    viewModel.moveTagInGroup(originalFromIdx, originalToIdx, true, originalVisibleTags)
                     withRefChannel.send(Unit)
                 }
             }
             SectionType.WithoutRefs -> {
                 val fromIdx = fromItem.indexInSection ?: return@rememberReorderableLazyListState
                 val toIdx = toItem.indexInSection ?: return@rememberReorderableLazyListState
+                // 保存拖拽前的可见标签列表和标签ID，用于计算排序值
+                val originalVisibleTags = tagsWithoutReferences
+                val movedTagId = localWithoutRefs[fromIdx].tag.id
+                
+                // 在原始列表中找到对应的索引
+                val originalFromIdx = originalVisibleTags.indexOfFirst { it.tag.id == movedTagId }
+                if (originalFromIdx == -1) return@rememberReorderableLazyListState
+                
+                // 计算目标位置在原始列表中的索引
+                // 需要找到 toIdx 位置对应的标签ID，然后在原始列表中找到该标签的位置
+                val originalToIdx = if (toIdx < localWithoutRefs.size) {
+                    // 找到目标位置对应的标签ID，然后在原始列表中找到该标签
+                    val targetTagId = localWithoutRefs[toIdx].tag.id
+                    val idx = originalVisibleTags.indexOfFirst { it.tag.id == targetTagId }
+                    if (idx == -1) return@rememberReorderableLazyListState
+                    idx
+                } else {
+                    // 移动到末尾：使用列表大小作为索引（会在函数中处理）
+                    originalVisibleTags.size
+                }
+                
                 val updated = localWithoutRefs.toMutableList().apply {
                     add(toIdx, removeAt(fromIdx))
                 }
                 localWithoutRefs = updated
                 withoutRefChannel.tryReceive()
                 coroutineScope.launch {
-                    viewModel.moveTagInGroup(fromIdx, toIdx, false)
+                    // 传入原始可见标签列表和对应的索引，确保排序基于当前显示的标签
+                    viewModel.moveTagInGroup(originalFromIdx, originalToIdx, false, originalVisibleTags)
                     withoutRefChannel.send(Unit)
                 }
             }
