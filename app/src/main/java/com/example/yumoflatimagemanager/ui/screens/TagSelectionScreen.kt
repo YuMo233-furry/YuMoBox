@@ -362,6 +362,19 @@ private fun TagSelectionTreeItem(
     val tag = tagWithChildren.tag
     val hasChildren = tagWithChildren.children.isNotEmpty() || tagWithChildren.referencedTags.isNotEmpty()
     val isExpanded = expandedTagIds.contains(tag.id)
+    val sortedChildren = remember(tagWithChildren.children) {
+        tagWithChildren.children.sortedWith(compareBy<TagEntity>({ it.sortOrder }, { it.name.lowercase() }))
+    }
+    val sortedReferencedTags = remember(tagWithChildren.referencedTags) {
+        tagWithChildren.referencedTags.sortedBy { it.sortOrder }
+    }
+    // 与标签抽屉保持一致的排序：子标签按 sortOrder/name，引用标签按 sortOrder
+    val sortedChildren = remember(tagWithChildren.children) {
+        tagWithChildren.children.sortedWith(compareBy<TagEntity>({ it.sortOrder }, { it.name.lowercase() }))
+    }
+    val sortedReferencedTags = remember(tagWithChildren.referencedTags) {
+        tagWithChildren.referencedTags.sortedBy { it.sortOrder }
+    }
 
     // 白色圆角背景容器 - 包裹整个标签树
     Box(
@@ -484,7 +497,7 @@ private fun TagSelectionTreeItem(
             ) {
                 Column {
                     // 子标签（仅一层）
-                    tagWithChildren.children.forEach { childTag: TagEntity ->
+                    sortedChildren.forEach { childTag: TagEntity ->
                         TagSelectionLeafItem(
                             tag = childTag,
                             isSelected = childTag.id in selectedTagIds,
@@ -495,7 +508,7 @@ private fun TagSelectionTreeItem(
                     }
 
                     // 引用标签（递归展开）
-                    tagWithChildren.referencedTags.forEach { ref: com.example.yumoflatimagemanager.data.local.TagReferenceEntity ->
+                    sortedReferencedTags.forEach { ref: com.example.yumoflatimagemanager.data.local.TagReferenceEntity ->
                     var referencedTagWithChildren by remember(ref.childTagId) { mutableStateOf<TagWithChildren?>(null) }
                     
                     // 异步获取完整的引用标签信息
@@ -775,7 +788,7 @@ private fun TagSelectionTreeItemWithGrayText(
     ) {
         Column {
             // 子标签（仅一层）
-            tagWithChildren.children.forEach { childTag: TagEntity ->
+            sortedChildren.forEach { childTag: TagEntity ->
                 TagSelectionLeafItemWithGrayText(
                     tag = childTag,
                     isSelected = childTag.id in selectedTagIds,
@@ -786,7 +799,7 @@ private fun TagSelectionTreeItemWithGrayText(
             }
 
             // 引用标签（递归展开）
-            tagWithChildren.referencedTags.forEach { ref: com.example.yumoflatimagemanager.data.local.TagReferenceEntity ->
+            sortedReferencedTags.forEach { ref: com.example.yumoflatimagemanager.data.local.TagReferenceEntity ->
             var referencedTagWithChildren by remember(ref.childTagId) { mutableStateOf<TagWithChildren?>(null) }
             
             // 异步获取完整的引用标签信息

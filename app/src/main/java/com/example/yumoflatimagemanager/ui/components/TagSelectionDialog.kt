@@ -370,6 +370,13 @@ private fun TagSelectionTreeItem(
     val tag = tagWithChildren.tag
     val hasChildren = tagWithChildren.children.isNotEmpty() || tagWithChildren.referencedTags.isNotEmpty()
     val isExpanded = expandedTagIds.contains(tag.id)
+    // 保持与标签抽屉一致的排序：子标签按 sortOrder/name，引用标签按 sortOrder
+    val sortedChildren = remember(tagWithChildren.children) {
+        tagWithChildren.children.sortedWith(compareBy<TagEntity>({ it.sortOrder }, { it.name.lowercase() }))
+    }
+    val sortedReferencedTags = remember(tagWithChildren.referencedTags) {
+        tagWithChildren.referencedTags.sortedBy { it.sortOrder }
+    }
 
     Surface(
         modifier = Modifier
@@ -445,7 +452,7 @@ private fun TagSelectionTreeItem(
     // 子项
     if (isExpanded && hasChildren) {
         // 子标签（仅一层）
-        tagWithChildren.children.forEach { childTag: TagEntity ->
+        sortedChildren.forEach { childTag: TagEntity ->
             TagSelectionLeafItem(
                 tag = childTag,
                 isSelected = isSelected && childTag.id == tag.id,
@@ -456,7 +463,7 @@ private fun TagSelectionTreeItem(
         }
 
         // 引用标签（递归展开）
-        tagWithChildren.referencedTags.forEach { ref: com.example.yumoflatimagemanager.data.local.TagReferenceEntity ->
+        sortedReferencedTags.forEach { ref: com.example.yumoflatimagemanager.data.local.TagReferenceEntity ->
             var referencedTagWithChildren by remember(ref.childTagId) { mutableStateOf<TagWithChildren?>(null) }
             
             // 异步获取完整的引用标签信息
