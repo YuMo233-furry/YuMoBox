@@ -53,6 +53,12 @@
 -keepclassmembers class com.example.yumoflatimagemanager.data.MigrationConfig { *; }
 -keepclassmembers class com.example.yumoflatimagemanager.data.SortConfig { *; }
 
+# Keep tag JSON models to avoid field obfuscation (tag_X.json)
+-keepclassmembers class com.example.yumoflatimagemanager.data.model.TagData { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.model.TagData$ReferencedTag { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.model.TagData$ParentReference { *; }
+-keepclassmembers class com.example.yumoflatimagemanager.data.model.TagGroupData { *; }
+
 # Keep Room entities/relations to avoid column/field rename issues
 -keepclassmembers class com.example.yumoflatimagemanager.data.local.TagEntity { *; }
 -keepclassmembers class com.example.yumoflatimagemanager.data.local.MediaTagCrossRef { *; }
