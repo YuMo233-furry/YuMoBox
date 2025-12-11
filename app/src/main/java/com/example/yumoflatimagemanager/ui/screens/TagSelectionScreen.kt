@@ -368,13 +368,6 @@ private fun TagSelectionTreeItem(
     val sortedReferencedTags = remember(tagWithChildren.referencedTags) {
         tagWithChildren.referencedTags.sortedBy { it.sortOrder }
     }
-    // 与标签抽屉保持一致的排序：子标签按 sortOrder/name，引用标签按 sortOrder
-    val sortedChildren = remember(tagWithChildren.children) {
-        tagWithChildren.children.sortedWith(compareBy<TagEntity>({ it.sortOrder }, { it.name.lowercase() }))
-    }
-    val sortedReferencedTags = remember(tagWithChildren.referencedTags) {
-        tagWithChildren.referencedTags.sortedBy { it.sortOrder }
-    }
 
     // 白色圆角背景容器 - 包裹整个标签树
     Box(
@@ -666,6 +659,12 @@ private fun TagSelectionTreeItemWithGrayText(
     val tag = tagWithChildren.tag
     val hasChildren = tagWithChildren.children.isNotEmpty() || tagWithChildren.referencedTags.isNotEmpty()
     val isExpanded = expandedTagIds.contains(tag.id)
+    val sortedChildren = remember(tagWithChildren.children) {
+        tagWithChildren.children.sortedWith(compareBy<TagEntity>({ it.sortOrder }, { it.name.lowercase() }))
+    }
+    val sortedReferencedTags = remember(tagWithChildren.referencedTags) {
+        tagWithChildren.referencedTags.sortedBy { it.sortOrder }
+    }
 
     // 白色圆角背景容器
     Box(
